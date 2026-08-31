@@ -5,6 +5,9 @@ from fastapi.exceptions import RequestValidationError
 from app.config import get_settings
 from app.schemas.common import ErrorResponse
 from app.api.health import router as health_router
+from app.api.auth import router as auth_router
+from app.api.resumes import router as resumes_router
+from app.api.analyses import router as analyses_router
 
 settings = get_settings()
 
@@ -34,7 +37,7 @@ app.add_middleware(
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     errors = exc.errors()
-    details = {err.get("loc", [""])[-1]: err.get("msg", "") for err in errors}
+    details = {str(err.get("loc", [""])[-1]): err.get("msg", "") for err in errors}
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content=ErrorResponse(
@@ -56,8 +59,11 @@ async def generic_exception_handler(request: Request, exc: Exception):
         ).model_dump()
     )
 
-# Include Routers
+# Include Routers with /api prefix
 app.include_router(health_router, prefix=settings.API_V1_STR)
+app.include_router(auth_router, prefix=settings.API_V1_STR)
+app.include_router(resumes_router, prefix=settings.API_V1_STR)
+app.include_router(analyses_router, prefix=settings.API_V1_STR)
 
 @app.get("/")
 async def root():
