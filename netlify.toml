@@ -1,0 +1,12 @@
+# Netlify Configuration for ResumeIQ Frontend SPA
+
+[build]
+  base = "frontend"
+  publish = "dist"
+  command = "npm run build"
+
+# React Router SPA Redirects (prevents 404 errors on page refresh)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
