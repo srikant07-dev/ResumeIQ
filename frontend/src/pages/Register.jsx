@@ -40,37 +40,37 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-dvh flex flex-col items-center justify-center p-4 bg-[#09090b] text-[#fafafa] font-['Geist',sans-serif]">
+    <div className="min-h-dvh flex flex-col items-center justify-center p-4 bg-canvas text-ink-primary font-body">
       {/* Top Brand Link */}
       <NavLink to="/" className="flex items-center gap-2.5 mb-8 group">
-        <div className="w-9 h-9 rounded-lg bg-[#10b981] flex items-center justify-center text-[#09090b] font-bold group-hover:scale-105 transition-transform duration-200">
+        <div className="w-9 h-9 rounded-lg bg-accent flex items-center justify-center text-canvas font-semibold group-hover:scale-105 transition-transform duration-200">
           <FileText size={20} weight="bold" />
         </div>
-        <span className="font-['Outfit',sans-serif] text-2xl font-semibold tracking-tight">
-          Resume<span className="text-[#10b981]">IQ</span>
+        <span className="font-display text-2xl font-semibold tracking-tight">
+          Resume<span className="text-accent">IQ</span>
         </span>
       </NavLink>
 
       {/* Register Card */}
-      <div className="w-full max-w-md bg-[#18181b] border border-white/[0.08] rounded-xl p-6 sm:p-8 shadow-2xl">
+      <div className="w-full max-w-md bg-surface border border-border rounded-xl p-6 sm:p-8 shadow-2xl">
         <div className="mb-6">
-          <h2 className="font-['Outfit',sans-serif] text-2xl font-semibold tracking-tight text-[#fafafa]">
+          <h2 className="font-display text-2xl font-semibold tracking-tight text-ink-primary">
             Create an Account
           </h2>
-          <p className="text-sm text-[#a1a1aa] mt-1">
+          <p className="text-sm text-ink-muted mt-1">
             Start analyzing your resumes against job descriptions with hybrid precision.
           </p>
         </div>
 
         {error && (
-          <div className="mb-5 p-3.5 rounded-md bg-[#ef4444]/10 border border-[#ef4444]/20 flex items-start gap-2.5 text-xs text-[#ef4444]" aria-live="polite">
+          <div className="mb-5 p-3.5 rounded-md bg-error/10 border border-error/20 flex items-start gap-2.5 text-xs text-error" aria-live="polite">
             <WarningCircle size={18} weight="fill" className="shrink-0 mt-0.5" />
             <p className="font-medium">{error}</p>
           </div>
         )}
 
         {successMsg && (
-          <div className="mb-5 p-3.5 rounded-md bg-[#10b981]/10 border border-[#10b981]/20 flex items-start gap-2.5 text-xs text-[#10b981]" aria-live="polite">
+          <div className="mb-5 p-3.5 rounded-md bg-accent/10 border border-accent/20 flex items-start gap-2.5 text-xs text-accent" aria-live="polite">
             <CheckCircle size={18} weight="fill" className="shrink-0 mt-0.5" />
             <p className="font-medium">{successMsg}</p>
           </div>
@@ -78,7 +78,7 @@ export default function Register() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-medium text-[#d4d4d8] mb-1.5" htmlFor="name">
+            <label className="block text-xs font-medium text-ink-secondary mb-1.5" htmlFor="name">
               Full Name
             </label>
             <input
@@ -88,12 +88,12 @@ export default function Register() {
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               placeholder="Jane Doe"
-              className="w-full px-3.5 py-2.5 rounded-md bg-[#27272a] border border-white/[0.08] text-sm text-[#fafafa] placeholder-[#71717a] focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent transition-colors"
+              className="w-full px-3.5 py-2.5 rounded-md bg-surface-raised border border-border text-sm text-ink-primary placeholder-ink-subtle focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-colors"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-[#d4d4d8] mb-1.5" htmlFor="email">
+            <label className="block text-xs font-medium text-ink-secondary mb-1.5" htmlFor="email">
               Email Address
             </label>
             <input
@@ -103,12 +103,12 @@ export default function Register() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="jane@example.com"
-              className="w-full px-3.5 py-2.5 rounded-md bg-[#27272a] border border-white/[0.08] text-sm text-[#fafafa] placeholder-[#71717a] focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent transition-colors"
+              className="w-full px-3.5 py-2.5 rounded-md bg-surface-raised border border-border text-sm text-ink-primary placeholder-ink-subtle focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-colors"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-[#d4d4d8] mb-1.5" htmlFor="password">
+            <label className="block text-xs font-medium text-ink-secondary mb-1.5" htmlFor="password">
               Password (min. 6 characters)
             </label>
             <input
@@ -119,17 +119,17 @@ export default function Register() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
-              className="w-full px-3.5 py-2.5 rounded-md bg-[#27272a] border border-white/[0.08] text-sm text-[#fafafa] placeholder-[#71717a] focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent transition-colors"
+              className="w-full px-3.5 py-2.5 rounded-md bg-surface-raised border border-border text-sm text-ink-primary placeholder-ink-subtle focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-colors"
             />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full mt-2 flex items-center justify-center gap-2 bg-[#10b981] hover:bg-[#059669] text-[#09090b] font-medium py-2.5 px-4 rounded-md text-sm transition-colors duration-150 cursor-pointer disabled:opacity-50"
+            className="w-full mt-2 flex items-center justify-center gap-2 bg-accent hover:bg-accent-hover text-canvas font-medium py-2.5 px-4 rounded-md text-sm transition-colors duration-150 cursor-pointer disabled:opacity-50"
           >
             {loading ? (
-              <div className="w-4 h-4 border-2 border-[#09090b] border-t-transparent rounded-full animate-spin"></div>
+              <div className="w-4 h-4 border-2 border-canvas border-t-transparent rounded-full animate-spin"></div>
             ) : (
               <>
                 <span>Create Account</span>
@@ -139,9 +139,9 @@ export default function Register() {
           </button>
         </form>
 
-        <div className="mt-6 text-center text-xs text-[#a1a1aa]">
+        <div className="mt-6 text-center text-xs text-ink-muted">
           Already have an account?{' '}
-          <NavLink to="/login" className="text-[#10b981] hover:underline font-medium">
+          <NavLink to="/login" className="text-accent hover:underline font-medium">
             Sign In
           </NavLink>
         </div>

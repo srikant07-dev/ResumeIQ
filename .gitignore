@@ -55,3 +55,16 @@ coverage/
 *~
 .DS_Store
 Thumbs.db
+
+# Internal Agent Workspaces & Logs
+.agents/
+
+# Local Skills, Scratch Notes & Intermediate Reports
+god-frontend-SKILL.md
+SKILL*.md
+AUDIT_REPORT.md
+TEST_INFRA.md
+TEST_READY.md
+LEARNING_NOTES.md
+PROJECT.md
+WALKTHROUGH.md

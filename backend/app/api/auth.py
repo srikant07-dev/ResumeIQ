@@ -1,10 +1,14 @@
+import logging
 from fastapi import APIRouter, Depends
 from app.utils.security import get_current_user
 from app.db.supabase import get_supabase_client
 from app.schemas.user import UserProfile
 from app.config import get_settings
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/auth", tags=["Auth"])
+
 
 @router.get("/me", response_model=UserProfile)
 async def get_my_profile(user_id: str = Depends(get_current_user)):
@@ -23,13 +27,14 @@ async def get_my_profile(user_id: str = Depends(get_current_user)):
     supabase = get_supabase_client()
     try:
         res = supabase.table("profiles").select("*").eq("id", user_id).single().execute()
-        if res and res.data:
-            return UserProfile(**res.data)
-    except Exception:
-        pass
+        if res and isinstance(res.data, dict):
+            return UserProfile(**dict(res.data))
+    except Exception as e:
+        logger.warning("Failed to fetch profile for user_id=%s: %s", user_id, e)
 
     return UserProfile(
         id=user_id,
         email="user@resumeiq.app",
         full_name="ResumeIQ User"
     )
+

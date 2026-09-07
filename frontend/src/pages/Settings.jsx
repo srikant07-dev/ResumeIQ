@@ -2,13 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import {
-  Gear,
   ShieldCheck,
   CheckCircle,
   Cpu,
-  Database,
-  ArrowClockwise,
-  Sparkle
+  ArrowClockwise
 } from '@phosphor-icons/react';
 
 export default function Settings() {
@@ -34,83 +31,83 @@ export default function Settings() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-8 animate-in fade-in duration-200">
-      <div className="pb-6 border-b border-white/[0.08]">
-        <h2 className="font-['Outfit',sans-serif] text-2xl font-semibold tracking-tight text-[#fafafa]">
+      <div className="pb-6 border-b border-border">
+        <h2 className="font-display text-2xl font-semibold tracking-tight text-ink-primary text-balance">
           System Settings & Profile
         </h2>
-        <p className="text-sm text-[#a1a1aa] mt-0.5">
+        <p className="text-sm text-ink-muted mt-0.5">
           Account details and backend runtime configuration.
         </p>
       </div>
 
       {/* Account Profile Card */}
-      <div className="bg-[#18181b] border border-white/[0.08] rounded-xl p-6 space-y-4">
-        <div className="flex items-center gap-2 text-sm font-semibold font-['Outfit',sans-serif] text-[#fafafa] pb-3 border-b border-white/[0.06]">
-          <ShieldCheck size={18} weight="bold" className="text-[#10b981]" />
+      <div className="bg-surface border border-border rounded-xl p-6 space-y-4">
+        <div className="flex items-center gap-2 text-sm font-semibold font-display text-ink-primary pb-3 border-b border-border-subtle">
+          <ShieldCheck size={18} weight="bold" className="text-accent" />
           <span>Authenticated Account</span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
           <div>
-            <span className="text-[#71717a] font-mono block mb-1">USER_ID</span>
-            <span className="font-mono text-[#d4d4d8] select-all">{user?.id || '—'}</span>
+            <span className="text-ink-subtle font-mono block mb-1">User ID</span>
+            <span className="font-mono text-ink-secondary select-all">{user?.id || '—'}</span>
           </div>
           <div>
-            <span className="text-[#71717a] font-mono block mb-1">EMAIL_ADDRESS</span>
-            <span className="font-mono text-[#d4d4d8]">{user?.email || '—'}</span>
+            <span className="text-ink-subtle font-mono block mb-1">Email</span>
+            <span className="font-mono text-ink-secondary">{user?.email || '—'}</span>
           </div>
           <div>
-            <span className="text-[#71717a] font-mono block mb-1">DISPLAY_NAME</span>
-            <span className="text-[#fafafa] font-medium font-['Outfit',sans-serif]">
+            <span className="text-ink-subtle font-mono block mb-1">Name</span>
+            <span className="text-ink-primary font-medium font-display">
               {user?.user_metadata?.full_name || 'Candidate'}
             </span>
           </div>
           <div>
-            <span className="text-[#71717a] font-mono block mb-1">AUTH_PROVIDER</span>
-            <span className="font-mono text-[#10b981]">SUPABASE_JWT</span>
+            <span className="text-ink-subtle font-mono block mb-1">Auth Provider</span>
+            <span className="font-mono text-accent">Supabase JWT</span>
           </div>
         </div>
       </div>
 
       {/* System Runtime Configuration */}
-      <div className="bg-[#18181b] border border-white/[0.08] rounded-xl p-6 space-y-4">
-        <div className="flex items-center justify-between pb-3 border-b border-white/[0.06]">
-          <div className="flex items-center gap-2 text-sm font-semibold font-['Outfit',sans-serif] text-[#fafafa]">
-            <Cpu size={18} weight="bold" className="text-[#10b981]" />
+      <div className="bg-surface border border-border rounded-xl p-6 space-y-4">
+        <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
+          <div className="flex items-center gap-2 text-sm font-semibold font-display text-ink-primary">
+            <Cpu size={18} weight="bold" className="text-accent" />
             <span>Backend Runtime Services</span>
           </div>
           <button
             onClick={checkHealth}
             disabled={checking}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#27272a] hover:bg-[#3f3f46] text-xs font-mono text-[#a1a1aa] hover:text-[#fafafa] transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-surface-raised hover:bg-surface-hover text-xs font-mono text-ink-muted hover:text-ink-primary transition-colors cursor-pointer"
           >
             <ArrowClockwise size={13} className={checking ? 'animate-spin' : ''} />
-            <span>PING_API</span>
+            <span>Check Status</span>
           </button>
         </div>
 
         <div className="space-y-3 text-xs font-mono">
-          <div className="flex items-center justify-between p-3 rounded bg-[#27272a]/50 border border-white/[0.04]">
-            <span className="text-[#a1a1aa]">FastAPI Service Status:</span>
-            <span className="text-[#10b981] flex items-center gap-1">
+          <div className="flex items-center justify-between p-3 rounded bg-surface-raised/50 border border-border-subtle">
+            <span className="text-ink-muted">FastAPI Service Status:</span>
+            <span className="text-accent flex items-center gap-1">
               <CheckCircle size={14} weight="fill" />
-              {healthStatus?.status === 'ok' ? 'HEALTHY (v' + healthStatus.version + ')' : 'CHECKING...'}
+              {healthStatus?.status === 'ok' ? 'Healthy (v' + healthStatus.version + ')' : 'Checking...'}
             </span>
           </div>
 
-          <div className="flex items-center justify-between p-3 rounded bg-[#27272a]/50 border border-white/[0.04]">
-            <span className="text-[#a1a1aa]">PostgreSQL Database:</span>
-            <span className="text-[#fafafa]">Supabase (ap-south-1)</span>
+          <div className="flex items-center justify-between p-3 rounded bg-surface-raised/50 border border-border-subtle">
+            <span className="text-ink-muted">PostgreSQL Database:</span>
+            <span className="text-ink-primary">Supabase (PostgreSQL + Storage)</span>
           </div>
 
-          <div className="flex items-center justify-between p-3 rounded bg-[#27272a]/50 border border-white/[0.04]">
-            <span className="text-[#a1a1aa]">AI Evaluation Engine:</span>
-            <span className="text-[#fafafa]">Google Gemini 2.0 Flash</span>
+          <div className="flex items-center justify-between p-3 rounded bg-surface-raised/50 border border-border-subtle">
+            <span className="text-ink-muted">AI Evaluation Engine:</span>
+            <span className="text-ink-primary">Google Gemini 3.6 Flash</span>
           </div>
 
-          <div className="flex items-center justify-between p-3 rounded bg-[#27272a]/50 border border-white/[0.04]">
-            <span className="text-[#a1a1aa]">Scoring Methodology:</span>
-            <span className="text-[#10b981]">HYBRID (Deterministic + Semantic)</span>
+          <div className="flex items-center justify-between p-3 rounded bg-surface-raised/50 border border-border-subtle">
+            <span className="text-ink-muted">Scoring Methodology:</span>
+            <span className="text-accent">Hybrid (Deterministic + Semantic)</span>
           </div>
         </div>
       </div>

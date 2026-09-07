@@ -55,15 +55,15 @@ class AnalysisCreateRequest(BaseModel):
 class AnalysisResponse(BaseModel):
     id: str
     resume_id: str
-    job_title: str
-    job_description: str
+    job_title: str = "Untitled Position"
+    job_description: str = ""
     overall_score: Optional[int] = None
     skills_score: Optional[int] = None
     experience_score: Optional[int] = None
     keyword_score: Optional[int] = None
     education_score: Optional[int] = None
     quality_score: Optional[int] = None
-    status: Literal["pending", "processing", "completed", "failed"]
+    status: Literal["pending", "processing", "completed", "failed"] = "completed"
     result_json: Optional[AnalysisResultData] = None
     error_message: Optional[str] = None
     created_at: Optional[datetime] = None
@@ -71,7 +71,26 @@ class AnalysisResponse(BaseModel):
 class AnalysisHistoryItem(BaseModel):
     id: str
     resume_id: str
-    job_title: str
+    job_title: str = "Untitled Position"
     overall_score: Optional[int] = None
-    status: str
+    status: str = "completed"
     created_at: Optional[datetime] = None
+
+class ReEvaluationRequest(BaseModel):
+    resume_id: str
+    parent_analysis_id: Optional[str] = None
+
+class ScoreDelta(BaseModel):
+    overall_delta: int = 0
+    skills_delta: int = 0
+    keywords_delta: int = 0
+    experience_delta: int = 0
+    education_delta: int = 0
+    quality_delta: int = 0
+    newly_matched_skills: list[str] = Field(default_factory=list)
+    resolved_missing_skills: list[str] = Field(default_factory=list)
+
+class ReEvaluationResponse(BaseModel):
+    new_analysis: AnalysisResponse
+    parent_analysis_id: str
+    score_delta: ScoreDelta

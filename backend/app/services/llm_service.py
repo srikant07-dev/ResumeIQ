@@ -1,4 +1,5 @@
 import json
+import logging
 import re
 from google import genai
 from google.genai import types
@@ -18,21 +19,59 @@ from app.services.scoring_service import (
     calculate_overall_score
 )
 
+logger = logging.getLogger(__name__)
+
 def _clean_json_text(raw_text: str) -> str:
-    """Strips markdown code fences and extraneous text around JSON."""
+    """Extracts JSON substring using regex pattern matching and strips markdown fences."""
+    if not raw_text or not raw_text.strip():
+        return "{}"
     raw = raw_text.strip()
-    if raw.startswith("```json"):
-        raw = raw[7:]
-    elif raw.startswith("```"):
-        raw = raw[3:]
-    if raw.endswith("```"):
-        raw = raw[:-3]
-    return raw.strip()
+    # Match outermost JSON object
+    match = re.search(r'(\{[\s\S]*\})', raw)
+    if match:
+        return match.group(1).strip()
+    # Fallback stripping
+    cleaned = re.sub(r'^```(?:json)?\s*', '', raw)
+    cleaned = re.sub(r'\s*```$', '', cleaned)
+    return cleaned.strip() or "{}"
+
+async def _generate_content_with_fallback(client: genai.Client, prompt: str, temperature: float = 0.2) -> str:
+    """
+    Executes async generate_content with primary model and automatic fallback
+    to alternative flash models if the primary model encounters a transient error or overload.
+    """
+    settings = get_settings()
+    models_to_try = [settings.GEMINI_MODEL, "gemini-3.5-flash", "gemini-flash-latest"]
+    seen = set()
+    unique_models = [m for m in models_to_try if m and not (m in seen or seen.add(m))]
+
+    last_error = None
+    for model_name in unique_models:
+        try:
+            response = await client.aio.models.generate_content(
+                model=model_name,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    temperature=temperature,
+                    response_mime_type="application/json"
+                )
+            )
+            if response and response.text:
+                return response.text
+        except Exception as e:
+            logger.warning("Gemini model '%s' failed: %s. Attempting fallback model...", model_name, e)
+            last_error = e
+            continue
+
+    if last_error:
+        raise last_error
+    raise RuntimeError("Failed to generate content with all configured Gemini models.")
 
 async def run_stage_1_comparison(resume_text: str, job_description: str) -> dict:
     """
     Stage 1: Extracts structured requirements from both documents,
     performs semantic matching, keyword categorization, and qualitative ratings.
+    Uses async non-blocking Gemini client.
     """
     settings = get_settings()
     client = genai.Client(api_key=settings.GEMINI_API_KEY)
@@ -90,16 +129,8 @@ Rules:
 3. Do not invent resume experience that does not exist in the text.
 """
     
-    response = client.models.generate_content(
-        model=settings.GEMINI_MODEL,
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            temperature=0.2,
-            response_mime_type="application/json"
-        )
-    )
-    
-    clean_text = _clean_json_text(response.text)
+    raw_response_text = await _generate_content_with_fallback(client, prompt, temperature=0.2)
+    clean_text = _clean_json_text(raw_response_text)
     return json.loads(clean_text)
 
 async def run_stage_2_recommendations(
@@ -110,6 +141,7 @@ async def run_stage_2_recommendations(
     """
     Stage 2: Generates prioritized, evidence-backed recommendations and candidate summary
     given the extracted gaps and computed hybrid scores.
+    Uses async non-blocking Gemini client with model fallback.
     """
     settings = get_settings()
     client = genai.Client(api_key=settings.GEMINI_API_KEY)
@@ -156,33 +188,57 @@ Rules:
 3. Keep advice practical, engineering-grade, and specific.
 """
 
-    response = client.models.generate_content(
-        model=settings.GEMINI_MODEL,
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            temperature=0.3,
-            response_mime_type="application/json"
-        )
-    )
-    
-    clean_text = _clean_json_text(response.text)
+    raw_response_text = await _generate_content_with_fallback(client, prompt, temperature=0.3)
+    clean_text = _clean_json_text(raw_response_text)
     return json.loads(clean_text)
+
+
+def _safe_int(val, default: int = 0) -> int:
+    """Safely converts value to integer with a fallback default."""
+    try:
+        if val is None:
+            return default
+        return int(val)
+    except (ValueError, TypeError):
+        return default
+
 
 async def analyze_resume_with_gemini(resume_text: str, job_description: str) -> AnalysisResultData:
     """
     Orchestrates the 2-Stage Gemini Pipeline + Deterministic Scoring Synthesis.
+    Includes defensive extraction and type fallbacks against unexpected LLM output structures.
     """
     # Stage 1: Extraction, Matching, and Qualitative AI signals
     stage1 = await run_stage_1_comparison(resume_text, job_description)
+    if not isinstance(stage1, dict):
+        stage1 = {}
     
     # Deterministic math computations
-    matched_skills = [SkillMatch(**m) for m in stage1.get("matching_skills", [])]
-    partial_skills = [SkillMatch(**p) for p in stage1.get("partial_skills", [])]
-    missing_skills = stage1.get("missing_skills", [])
+    raw_matched = stage1.get("matching_skills") or []
+    matched_skills = []
+    for m in raw_matched:
+        if isinstance(m, dict):
+            matched_skills.append(SkillMatch(
+                skill=str(m.get("skill", "")),
+                context=str(m.get("context", ""))
+            ))
+
+    raw_partial = stage1.get("partial_skills") or []
+    partial_skills = []
+    for p in raw_partial:
+        if isinstance(p, dict):
+            partial_skills.append(SkillMatch(
+                skill=str(p.get("skill", "")),
+                context=str(p.get("context", ""))
+            ))
+
+    raw_missing = stage1.get("missing_skills") or []
+    missing_skills = [str(item) for item in raw_missing if item]
     
+    req_skills_count = _safe_int(stage1.get("required_skills_count"), 1)
     total_required_skills = max(
         len(matched_skills) + len(partial_skills) + len(missing_skills),
-        stage1.get("required_skills_count", 1)
+        req_skills_count
     )
     
     skills_score_val = calculate_skills_score(
@@ -191,8 +247,8 @@ async def analyze_resume_with_gemini(resume_text: str, job_description: str) -> 
         total_required=total_required_skills
     )
     
-    kw_present = stage1.get("keywords_present", [])
-    kw_missing = stage1.get("keywords_missing", [])
+    kw_present = [str(k) for k in (stage1.get("keywords_present") or []) if k]
+    kw_missing = [str(k) for k in (stage1.get("keywords_missing") or []) if k]
     total_kw = max(1, len(kw_present) + len(kw_missing))
     
     kw_score_val = calculate_keyword_score(
@@ -200,9 +256,19 @@ async def analyze_resume_with_gemini(resume_text: str, job_description: str) -> 
         total_keywords=total_kw
     )
     
-    exp_score_val = max(0, min(100, int(stage1.get("experience", {}).get("score", 70))))
-    edu_score_val = max(0, min(100, int(stage1.get("education", {}).get("score", 85))))
-    qual_score_val = max(0, min(100, int(stage1.get("quality", {}).get("score", 75))))
+    exp_data = stage1.get("experience")
+    if not isinstance(exp_data, dict):
+        exp_data = {}
+    edu_data = stage1.get("education")
+    if not isinstance(edu_data, dict):
+        edu_data = {}
+    qual_data = stage1.get("quality")
+    if not isinstance(qual_data, dict):
+        qual_data = {}
+
+    exp_score_val = max(0, min(100, _safe_int(exp_data.get("score"), 70)))
+    edu_score_val = max(0, min(100, _safe_int(edu_data.get("score"), 85)))
+    qual_score_val = max(0, min(100, _safe_int(qual_data.get("score"), 75)))
     
     overall_val = calculate_overall_score(
         skills_score=skills_score_val,
@@ -223,6 +289,8 @@ async def analyze_resume_with_gemini(resume_text: str, job_description: str) -> 
     
     # Stage 2: Recommendations
     stage2 = await run_stage_2_recommendations(stage1, scores_context, job_description)
+    if not isinstance(stage2, dict):
+        stage2 = {}
     
     # Assemble full Pydantic validated object
     score_breakdown = ScoreBreakdown(
@@ -234,7 +302,7 @@ async def analyze_resume_with_gemini(resume_text: str, job_description: str) -> 
         experience=ScoreEvidence(
             score=exp_score_val,
             source="ai",
-            evidence=stage1.get("experience", {}).get("evidence", "Evaluated from candidate work history and technical project alignment.")
+            evidence=str(exp_data.get("evidence") or "Evaluated from candidate work history and technical project alignment.")
         ),
         keywords=ScoreEvidence(
             score=kw_score_val,
@@ -244,25 +312,62 @@ async def analyze_resume_with_gemini(resume_text: str, job_description: str) -> 
         education=ScoreEvidence(
             score=edu_score_val,
             source="ai",
-            evidence=stage1.get("education", {}).get("evidence", "Degree and academic background align with target qualification requirements.")
+            evidence=str(edu_data.get("evidence") or "Degree and academic background align with target qualification requirements.")
         ),
         quality=ScoreEvidence(
             score=qual_score_val,
             source="ai",
-            evidence=stage1.get("quality", {}).get("evidence", "Resume utilizes clear bullet hierarchy and action-oriented vocabulary.")
+            evidence=str(qual_data.get("evidence") or "Resume utilizes clear bullet hierarchy and action-oriented vocabulary.")
         )
     )
     
-    kw_categories_raw = stage1.get("keyword_categories", {})
+    kw_categories_raw = stage1.get("keyword_categories")
+    if not isinstance(kw_categories_raw, dict):
+        kw_categories_raw = {}
     categorized_kw = CategorizedKeywords(
-        technical=kw_categories_raw.get("technical", []),
-        soft=kw_categories_raw.get("soft", []),
-        domain=kw_categories_raw.get("domain", [])
+        technical=[str(x) for x in (kw_categories_raw.get("technical") or [])],
+        soft=[str(x) for x in (kw_categories_raw.get("soft") or [])],
+        domain=[str(x) for x in (kw_categories_raw.get("domain") or [])]
     )
     
-    strengths = [EvidencePoint(**s) for s in stage1.get("strengths", [])]
-    weaknesses = [EvidencePoint(**w) for w in stage1.get("weaknesses", [])]
-    recommendations = [Recommendation(**r) for r in stage2.get("recommendations", [])]
+    raw_strengths = stage1.get("strengths") or []
+    strengths = []
+    for s in raw_strengths:
+        if isinstance(s, dict):
+            strengths.append(EvidencePoint(
+                point=str(s.get("point", "")),
+                evidence=str(s.get("evidence", ""))
+            ))
+        elif isinstance(s, str):
+            strengths.append(EvidencePoint(point=s, evidence=""))
+
+    raw_weaknesses = stage1.get("weaknesses") or []
+    weaknesses = []
+    for w in raw_weaknesses:
+        if isinstance(w, dict):
+            weaknesses.append(EvidencePoint(
+                point=str(w.get("point", "")),
+                evidence=str(w.get("evidence", ""))
+            ))
+        elif isinstance(w, str):
+            weaknesses.append(EvidencePoint(point=w, evidence=""))
+
+    raw_recs = stage2.get("recommendations") or []
+    recommendations = []
+    for r in raw_recs:
+        if isinstance(r, dict):
+            prio = str(r.get("priority", "MEDIUM")).upper().strip()
+            if prio not in ("HIGH", "MEDIUM", "LOW"):
+                prio = "MEDIUM"
+            recommendations.append(Recommendation(
+                priority=prio,
+                title=str(r.get("title") or "Recommended Improvement"),
+                description=str(r.get("description") or ""),
+                evidence=str(r.get("evidence") or ""),
+                suggested_action=str(r.get("suggested_action") or "")
+            ))
+    
+    summary_text = str(stage2.get("summary") or "Analysis completed successfully.")
     
     return AnalysisResultData(
         score_breakdown=score_breakdown,
@@ -275,5 +380,6 @@ async def analyze_resume_with_gemini(resume_text: str, job_description: str) -> 
         strengths=strengths,
         weaknesses=weaknesses,
         recommendations=recommendations,
-        summary=stage2.get("summary", "Analysis completed successfully.")
+        summary=summary_text
     )
+

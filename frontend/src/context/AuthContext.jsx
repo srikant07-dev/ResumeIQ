@@ -11,17 +11,47 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     // Check active session on initial mount
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
+      if (session) {
+        setSession(session);
+        setUser(session?.user ?? null);
+        setLoading(false);
+      } else {
+        const demoSession = localStorage.getItem('resumeiq_demo_session');
+        if (demoSession) {
+          try {
+            const parsed = JSON.parse(demoSession);
+            setSession(parsed);
+            setUser(parsed.user ?? null);
+          } catch (e) {
+            localStorage.removeItem('resumeiq_demo_session');
+          }
+        }
+        setLoading(false);
+      }
     }).catch(() => {
+      const demoSession = localStorage.getItem('resumeiq_demo_session');
+      if (demoSession) {
+        try {
+          const parsed = JSON.parse(demoSession);
+          setSession(parsed);
+          setUser(parsed.user ?? null);
+        } catch (e) {
+          localStorage.removeItem('resumeiq_demo_session');
+        }
+      }
       setLoading(false);
     });
 
     // Listen for auth events (sign in, sign out, token refresh)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session) {
+        localStorage.removeItem('resumeiq_demo_session');
+        setSession(session);
+        setUser(session?.user ?? null);
+      } else if (event === 'SIGNED_OUT' || !localStorage.getItem('resumeiq_demo_session')) {
+        setSession(null);
+        setUser(null);
+      }
       setLoading(false);
     });
 
@@ -52,8 +82,12 @@ export function AuthProvider({ children }) {
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
+    localStorage.removeItem('resumeiq_demo_session');
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      // Ignore signOut errors when session is not in Supabase
+    }
     setUser(null);
     setSession(null);
   };
@@ -65,8 +99,10 @@ export function AuthProvider({ children }) {
       email: 'demo.developer@resumeiq.app',
       user_metadata: { full_name: 'Demo Candidate' },
     };
+    const mockSession = { access_token: 'demo-token', user: mockUser };
+    localStorage.setItem('resumeiq_demo_session', JSON.stringify(mockSession));
     setUser(mockUser);
-    setSession({ access_token: 'demo-token', user: mockUser });
+    setSession(mockSession);
   };
 
   const value = {

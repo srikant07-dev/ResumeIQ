@@ -4,12 +4,15 @@ from app.services.analysis_service import (
     create_and_run_analysis,
     get_analysis_by_id,
     list_user_analyses,
-    delete_user_analysis
+    delete_user_analysis,
+    re_evaluate_analysis
 )
 from app.schemas.analysis import (
     AnalysisCreateRequest,
     AnalysisResponse,
-    AnalysisHistoryItem
+    AnalysisHistoryItem,
+    ReEvaluationRequest,
+    ReEvaluationResponse
 )
 
 router = APIRouter(prefix="/analyses", tags=["Analyses"])
@@ -44,3 +47,19 @@ async def delete_analysis(
 ):
     """Deletes an analysis record."""
     return await delete_user_analysis(analysis_id, user_id)
+
+@router.post("/{analysis_id}/re-evaluate", response_model=ReEvaluationResponse)
+async def re_evaluate(
+    analysis_id: str,
+    req: ReEvaluationRequest,
+    user_id: str = Depends(get_current_user)
+):
+    """
+    Re-evaluates an updated resume against the same job description from a prior analysis.
+    Returns the new analysis with computed score deltas and skill migration tracking.
+    """
+    return await re_evaluate_analysis(
+        parent_analysis_id=analysis_id,
+        new_resume_id=req.resume_id,
+        user_id=user_id
+    )

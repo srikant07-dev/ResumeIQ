@@ -8,10 +8,10 @@ export default function ProtectedRoute({ children }) {
 
   if (loading) {
     return (
-      <div className="min-h-dvh bg-[#09090b] flex items-center justify-center">
+      <div className="min-h-dvh bg-canvas flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-6 h-6 border-2 border-[#10b981] border-t-transparent rounded-full animate-spin"></div>
-          <span className="font-mono text-xs text-[#a1a1aa] uppercase tracking-wider">Verifying Session...</span>
+          <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin"></div>
+          <span className="font-mono text-xs text-ink-muted uppercase tracking-wider">Verifying Session...</span>
         </div>
       </div>
     );

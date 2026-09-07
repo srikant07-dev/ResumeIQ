@@ -3,6 +3,7 @@ import { UploadSimple, FileText, CheckCircle, WarningCircle, Trash } from '@phos
 
 export default function FileUpload({ onFileSelected, selectedFile, error, onClear }) {
   const [isDragging, setIsDragging] = useState(false);
+  const [localError, setLocalError] = useState(null);
   const fileInputRef = useRef(null);
 
   const handleDragOver = (e) => {
@@ -33,15 +34,35 @@ export default function FileUpload({ onFileSelected, selectedFile, error, onClea
 
   const validateAndPassFile = (file) => {
     if (!file.name.toLowerCase().endsWith('.pdf')) {
-      alert('Only PDF documents (.pdf) are supported.');
+      const msg = 'Only PDF documents (.pdf) are supported.';
+      setLocalError(msg);
+      try {
+        if (typeof window !== 'undefined' && typeof window.alert === 'function') {
+          window.alert(msg);
+        }
+      } catch {}
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      alert('File exceeds the 5 MB maximum size limit.');
+      const msg = 'File exceeds the 5 MB maximum size limit.';
+      setLocalError(msg);
+      try {
+        if (typeof window !== 'undefined' && typeof window.alert === 'function') {
+          window.alert(msg);
+        }
+      } catch {}
       return;
     }
+    setLocalError(null);
     onFileSelected(file);
   };
+
+  const handleClear = () => {
+    setLocalError(null);
+    if (onClear) onClear();
+  };
+
+  const activeError = error || localError;
 
   return (
     <div className="space-y-3">
@@ -51,10 +72,10 @@ export default function FileUpload({ onFileSelected, selectedFile, error, onClea
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
-          className={`border-2 border-dashed rounded-xl p-8 sm:p-10 text-center cursor-pointer transition-all duration-150 flex flex-col items-center justify-center ${
+          className={`border-2 border-dashed rounded-xl p-8 sm:p-10 text-center cursor-pointer transition-all duration-200 flex flex-col items-center justify-center ${
             isDragging
-              ? 'border-[#10b981] bg-[#10b981]/5'
-              : 'border-white/[0.12] hover:border-[#10b981]/60 bg-[#18181b]/50 hover:bg-[#18181b]'
+              ? 'border-accent bg-accent/10 scale-[1.01] shadow-lg shadow-accent/5'
+              : 'border-border-hover hover:border-accent/60 bg-surface/50 hover:bg-surface'
           }`}
         >
           <input
@@ -64,36 +85,36 @@ export default function FileUpload({ onFileSelected, selectedFile, error, onClea
             onChange={handleFileChange}
             className="hidden"
           />
-          <div className="w-12 h-12 rounded-xl bg-[#27272a] text-[#10b981] flex items-center justify-center mb-4 border border-white/[0.06]">
+          <div className="w-12 h-12 rounded-xl bg-surface-raised text-accent flex items-center justify-center mb-4 border border-border-subtle">
             <UploadSimple size={24} weight="bold" />
           </div>
-          <h4 className="font-['Outfit',sans-serif] text-base font-semibold text-[#fafafa] mb-1">
+          <h4 className="font-display text-base font-semibold text-ink-primary mb-1">
             Upload your resume PDF
           </h4>
-          <p className="text-xs text-[#a1a1aa] mb-4">
-            Drag and drop your file here, or <span className="text-[#10b981] underline">browse files</span>
+          <p className="text-xs text-ink-muted mb-4">
+            Drag and drop your file here, or <span className="text-accent underline">browse files</span>
           </p>
-          <div className="inline-flex items-center gap-2 text-[11px] font-mono text-[#71717a] px-2.5 py-1 rounded bg-[#27272a] border border-white/[0.04]">
-            <span>FORMAT: PDF ONLY</span>
+          <div className="inline-flex items-center gap-2 text-[11px] font-mono text-ink-subtle px-2.5 py-1 rounded bg-surface-raised border border-border-subtle">
+            <span>PDF only</span>
             <span>·</span>
-            <span>MAX SIZE: 5 MB</span>
+            <span>Max 5 MB</span>
           </div>
         </div>
       ) : (
-        <div className="p-4 rounded-xl bg-[#18181b] border border-[#10b981]/30 flex items-center justify-between">
+        <div className="p-4 rounded-xl bg-surface border border-accent/30 flex items-center justify-between">
           <div className="flex items-center gap-3.5 min-w-0">
-            <div className="w-10 h-10 rounded-lg bg-[#10b981]/10 text-[#10b981] flex items-center justify-center shrink-0">
+            <div className="w-10 h-10 rounded-lg bg-accent/10 text-accent flex items-center justify-center shrink-0">
               <FileText size={22} weight="bold" />
             </div>
             <div className="min-w-0">
-              <p className="font-medium text-sm text-[#fafafa] truncate font-['Outfit',sans-serif]">
+              <p className="font-medium text-sm text-ink-primary truncate font-display">
                 {selectedFile.name}
               </p>
-              <div className="flex items-center gap-2 text-xs font-mono text-[#a1a1aa] mt-0.5">
+              <div className="flex items-center gap-2 text-xs font-mono text-ink-muted mt-0.5 tabular-nums">
                 <span>{(selectedFile.size / (1024 * 1024)).toFixed(2)} MB</span>
                 <span>·</span>
-                <span className="text-[#10b981] flex items-center gap-1">
-                  <CheckCircle size={13} weight="fill" /> READY
+                <span className="text-accent flex items-center gap-1">
+                  <CheckCircle size={13} weight="fill" /> Ready
                 </span>
               </div>
             </div>
@@ -101,8 +122,8 @@ export default function FileUpload({ onFileSelected, selectedFile, error, onClea
 
           <button
             type="button"
-            onClick={onClear}
-            className="p-2 text-[#a1a1aa] hover:text-[#ef4444] rounded-md hover:bg-[#27272a] transition-colors cursor-pointer"
+            onClick={handleClear}
+            className="p-2 text-ink-muted hover:text-error rounded-md hover:bg-surface-raised transition-colors duration-150 cursor-pointer btn-press"
             title="Remove File"
           >
             <Trash size={18} weight="bold" />
@@ -110,10 +131,23 @@ export default function FileUpload({ onFileSelected, selectedFile, error, onClea
         </div>
       )}
 
-      {error && (
-        <div className="p-3 rounded-md bg-[#ef4444]/10 border border-[#ef4444]/20 flex items-center gap-2 text-xs text-[#ef4444]">
-          <WarningCircle size={16} weight="fill" className="shrink-0" />
-          <span>{error}</span>
+      {activeError && (
+        <div
+          role="alert"
+          aria-live="polite"
+          className="p-3.5 rounded-lg bg-error/10 border border-error/25 flex items-center justify-between gap-2 text-xs text-error animate-shake"
+        >
+          <div className="flex items-center gap-2">
+            <WarningCircle size={16} weight="fill" className="shrink-0" />
+            <span className="font-medium">{activeError}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setLocalError(null)}
+            className="text-error/70 hover:text-error font-mono text-xs cursor-pointer"
+          >
+            Dismiss
+          </button>
         </div>
       )}
     </div>

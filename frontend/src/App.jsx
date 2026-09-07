@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router';
+import { BrowserRouter, Routes, Route } from 'react-router';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import AppLayout from './components/layout/AppLayout';
@@ -12,6 +12,7 @@ import NewAnalysis from './pages/NewAnalysis';
 import AnalysisResult from './pages/AnalysisResult';
 import History from './pages/History';
 import Settings from './pages/Settings';
+import NotFound from './pages/NotFound';
 
 export default function App() {
   return (
@@ -38,8 +39,8 @@ export default function App() {
             <Route path="/settings" element={<Settings />} />
           </Route>
 
-          {/* Fallback */}
-          <Route path="*" element={<Navigate to="/" replace />} />
+          {/* 404 - Custom Not Found */}
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

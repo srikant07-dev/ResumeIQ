@@ -1,5 +1,9 @@
+from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from functools import lru_cache
+
+BASE_DIR = Path(__file__).resolve().parent.parent  # backend/
+ROOT_DIR = BASE_DIR.parent                         # repo root (ResumeAI/)
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "ResumeIQ API"
@@ -17,10 +21,14 @@ class Settings(BaseSettings):
     
     # Google Gemini AI
     GEMINI_API_KEY: str = ""
-    GEMINI_MODEL: str = "gemini-2.0-flash"
+    GEMINI_MODEL: str = "gemini-3.6-flash"
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=[
+            str(BASE_DIR / ".env"),
+            str(ROOT_DIR / ".env"),
+            ".env"
+        ],
         env_file_encoding="utf-8",
         extra="ignore"
     )
@@ -28,3 +36,4 @@ class Settings(BaseSettings):
 @lru_cache()
 def get_settings() -> Settings:
     return Settings()
+
