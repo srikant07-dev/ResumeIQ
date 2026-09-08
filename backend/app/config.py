@@ -21,7 +21,11 @@ class Settings(BaseSettings):
     
     # Google Gemini AI
     GEMINI_API_KEY: str = ""
+    GEMINI_DEEP_RESEARCH_API_KEY: str = ""  # Dedicated key for Deep Dive mode (isolated rate limits)
     GEMINI_MODEL: str = "gemini-3.6-flash"
+
+    # Market Intelligence
+    MARKET_INTEL_DAILY_LIMIT: int = 3  # Max market intel analyses per user per day
 
     model_config = SettingsConfigDict(
         env_file=[

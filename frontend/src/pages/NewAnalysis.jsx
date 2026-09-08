@@ -9,7 +9,8 @@ import {
   ArrowRight,
   ArrowLeft,
   WarningCircle,
-  User
+  User,
+  Globe,
 } from '@phosphor-icons/react';
 
 export default function NewAnalysis() {
@@ -25,6 +26,7 @@ export default function NewAnalysis() {
 
   // Job Description State
   const [jobTitle, setJobTitle] = useState('');
+  const [companyName, setCompanyName] = useState('');
   const [jobDescription, setJobDescription] = useState('');
 
   // Execution State
@@ -119,6 +121,7 @@ export default function NewAnalysis() {
         resume_id: activeResumeId,
         job_title: jobTitle.trim(),
         job_description: jobDescription.trim(),
+        company_name: companyName.trim() || null,
       });
 
       // 3. Navigate to results view
@@ -284,6 +287,27 @@ export default function NewAnalysis() {
               value={jobTitle}
               onChange={(e) => setJobTitle(e.target.value)}
               placeholder="e.g. Full Stack Developer, Frontend Engineer, Python Backend Dev"
+              className="w-full px-3.5 py-2.5 rounded-md bg-surface border border-border text-sm text-ink-primary placeholder-ink-subtle focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent font-display"
+            />
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-medium text-ink-secondary" htmlFor="companyName">
+                Company Name <span className="text-ink-subtle">(optional)</span>
+              </label>
+              <span className="text-[10px] font-mono text-ink-faint flex items-center gap-1">
+                <Globe size={11} />
+                Enables Market Intelligence
+              </span>
+            </div>
+            <input
+              id="companyName"
+              type="text"
+              value={companyName}
+              onChange={(e) => setCompanyName(e.target.value)}
+              placeholder="e.g. Stripe, Google, Razorpay"
+              maxLength={100}
               className="w-full px-3.5 py-2.5 rounded-md bg-surface border border-border text-sm text-ink-primary placeholder-ink-subtle focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent font-display"
             />
           </div>

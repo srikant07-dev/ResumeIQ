@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, NavLink, useNavigate } from 'react-router';
 import api from '../services/api';
 import SkillSimulator from '../components/analysis/SkillSimulator';
+import MarketIntelligenceTab from '../components/analysis/MarketIntelligenceTab';
 import ScoreDeltaModal from '../components/analysis/ScoreDeltaModal';
 import BulletDiffCard from '../components/analysis/BulletDiffCard';
 import FileUpload from '../components/upload/FileUpload';
@@ -23,7 +24,8 @@ import {
   Spinner,
   ArrowsClockwise,
   TrendUp,
-  X
+  X,
+  Globe,
 } from '@phosphor-icons/react';
 
 export default function AnalysisResult() {
@@ -239,6 +241,11 @@ ${result.recommendations?.map((r, i) => `${i + 1}. **[${r.priority}] ${r.title}*
     { id: 'experience', label: 'Experience & Quality', icon: FileText },
     { id: 'recommendations', label: `Recommendations (${result.recommendations?.length || 0})`, icon: Lightbulb },
     { id: 'simulator', label: 'What-If Simulator', icon: Lightning },
+    ...(analysis.company_name ? [{
+      id: 'market-intel',
+      label: 'Market Intel',
+      icon: Globe,
+    }] : []),
   ];
 
   return (
@@ -693,6 +700,14 @@ ${result.recommendations?.map((r, i) => `${i + 1}. **[${r.priority}] ${r.title}*
       {/* TAB 6: WHAT-IF SIMULATOR */}
       {activeTab === 'simulator' && (
         <SkillSimulator analysis={analysis} />
+      )}
+
+      {/* TAB 7: MARKET INTELLIGENCE */}
+      {activeTab === 'market-intel' && (
+        <MarketIntelligenceTab
+          analysis={analysis}
+          onRefresh={fetchAnalysis}
+        />
       )}
 
       {/* RE-EVALUATION REVISION UPLOAD DIALOG */}

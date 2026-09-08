@@ -146,7 +146,7 @@ async def create_and_run_analysis(
             if settings.SUPABASE_URL and settings.SUPABASE_SERVICE_ROLE_KEY and user_id != "00000000-0000-0000-0000-000000000000":
                 try:
                     supabase = get_supabase_client()
-                    supabase.table("analyses").insert({
+                    fail_payload = {
                         "id": analysis_id,
                         "user_id": user_id,
                         "resume_id": req.resume_id,
@@ -154,7 +154,10 @@ async def create_and_run_analysis(
                         "job_description": req.job_description,
                         "status": "failed",
                         "error_message": str(ai_err)
-                    }).execute()
+                    }
+                    if req.company_name:
+                        fail_payload["company_name"] = req.company_name
+                    supabase.table("analyses").insert(fail_payload).execute()
                 except Exception as db_err:
                     logger.error("Failed to record failed analysis status to DB: %s", db_err)
 
@@ -195,7 +198,8 @@ async def create_and_run_analysis(
         quality_score=qual_val,
         status="completed",
         result_json=result_data,
-        created_at=now_utc
+        created_at=now_utc,
+        company_name=req.company_name,
     )
 
     # 4. Save to database or Demo Store
@@ -225,6 +229,8 @@ async def create_and_run_analysis(
             "status": "completed",
             "result_json": result_data.model_dump()
         }
+        if req.company_name:
+            insert_payload["company_name"] = req.company_name
         supabase.table("analyses").insert(insert_payload).execute()
     except Exception as insert_err:
         logger.error("Failed to persist completed analysis to database: %s", insert_err, exc_info=True)
@@ -453,7 +459,8 @@ async def re_evaluate_analysis(
     new_analysis_req = AnalysisCreateRequest(
         resume_id=new_resume_id,
         job_title=parent.job_title,
-        job_description=parent.job_description
+        job_description=parent.job_description,
+        company_name=parent.company_name,
     )
     new_analysis = await create_and_run_analysis(new_analysis_req, user_id)
 

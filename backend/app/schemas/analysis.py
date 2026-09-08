@@ -47,10 +47,81 @@ class AnalysisResultData(BaseModel):
     recommendations: list[Recommendation] = Field(default_factory=list)
     summary: str
 
+
+# ──────────────────────────────────────────────
+# Market Intelligence Schemas
+# ──────────────────────────────────────────────
+
+class WebSource(BaseModel):
+    title: str = ""
+    uri: str = ""
+
+class CompanyIntelligence(BaseModel):
+    company_name: str
+    domain: str = ""                         # e.g. "fintech", "e-commerce"
+    peer_companies: list[str] = Field(default_factory=list)
+    tech_stack: list[str] = Field(default_factory=list)
+    engineering_culture: list[str] = Field(default_factory=list)
+    hiring_bar_summary: str = ""
+    sources: list[WebSource] = Field(default_factory=list)
+
+class SkillFrequency(BaseModel):
+    skill: str
+    frequency: str = ""                      # e.g. "9/12 JDs"
+    present_in_resume: bool = False
+
+class MarketBenchmark(BaseModel):
+    consensus_skills: list[str] = Field(default_factory=list)
+    edge_skills: list[str] = Field(default_factory=list)
+    skill_frequency_map: list[SkillFrequency] = Field(default_factory=list)
+    common_experience_range: str = ""
+    jds_analyzed_count: int = 0
+    sources: list[WebSource] = Field(default_factory=list)
+
+class StrategyPoint(BaseModel):
+    title: str
+    detail: str = ""
+
+class ActionItem(BaseModel):
+    action: str
+    why: str = ""                            # Market evidence
+    impact: str = ""
+    priority: Literal["CRITICAL", "HIGH", "MEDIUM", "LOW"] = "MEDIUM"
+    effort: Literal["QUICK_WIN", "SHORT_TERM", "LONG_TERM"] = "SHORT_TERM"
+
+class CompetitiveStrategy(BaseModel):
+    market_position: str = ""                # e.g. "top 30%"
+    competitive_advantages: list[StrategyPoint] = Field(default_factory=list)
+    critical_gaps: list[StrategyPoint] = Field(default_factory=list)
+    strategic_gaps: list[StrategyPoint] = Field(default_factory=list)
+    company_fit_score: int = Field(default=0, ge=0, le=100)
+    company_fit_signals: list[str] = Field(default_factory=list)
+    pointwise_strategy: list[ActionItem] = Field(default_factory=list)
+
+class MarketIntelligenceResult(BaseModel):
+    company_intelligence: CompanyIntelligence
+    market_benchmark: MarketBenchmark
+    competitive_strategy: CompetitiveStrategy
+    mode: Literal["fast", "deep"] = "fast"
+    deep_research_report: Optional[str] = None  # Full markdown report from Deep Research
+
+class MarketIntelTriggerRequest(BaseModel):
+    mode: Literal["fast", "deep"] = "fast"
+
+class MarketIntelTriggerResponse(BaseModel):
+    status: str = "running"                  # running | completed | failed
+    message: str = ""
+
+
+# ──────────────────────────────────────────────
+# Request / Response Schemas
+# ──────────────────────────────────────────────
+
 class AnalysisCreateRequest(BaseModel):
     resume_id: str
     job_title: str = Field(min_length=2, max_length=200)
     job_description: str = Field(min_length=20, max_length=10000)
+    company_name: Optional[str] = Field(default=None, min_length=2, max_length=100)
 
 class AnalysisResponse(BaseModel):
     id: str
@@ -67,6 +138,10 @@ class AnalysisResponse(BaseModel):
     result_json: Optional[AnalysisResultData] = None
     error_message: Optional[str] = None
     created_at: Optional[datetime] = None
+    # Market Intelligence fields (backwards-compatible: all Optional with None defaults)
+    company_name: Optional[str] = None
+    market_intel_status: Optional[str] = None       # None | running | completed | failed
+    market_intel_json: Optional[MarketIntelligenceResult] = None
 
 class AnalysisHistoryItem(BaseModel):
     id: str
