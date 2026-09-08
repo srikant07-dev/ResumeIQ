@@ -7,10 +7,10 @@
 [![Python](https://img.shields.io/badge/Python-3.11+-3776ab?logo=python&logoColor=white)](https://www.python.org/)
 [![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL_%2B_Auth-3ecf8e?logo=supabase&logoColor=white)](https://supabase.com/)
 [![Google Gemini](https://img.shields.io/badge/Google_Gemini-3.6_Flash-4285f4?logo=google&logoColor=white)](https://ai.google.dev/)
-[![Tests](https://img.shields.io/badge/Tests-150%2F150_Passed-10b981)](https://github.com/srikant07-dev/ResumeIQ)
+[![Tests](https://img.shields.io/badge/Tests-212%2F212_Passed-10b981)](https://github.com/srikant07-dev/ResumeIQ)
 
 > **Know exactly how well your resume matches the job.**  
-> A production-grade, engineer-crafted SaaS application delivering transparent, evidence-grounded resume diagnostics, gap analysis, and interactive optimization.
+> A production-grade, engineer-crafted SaaS application delivering transparent, evidence-grounded resume diagnostics, gap analysis, interactive optimization, and real-time market intelligence.
 
 ---
 
@@ -24,31 +24,40 @@ Rather than relying on opaque, hallucination-prone single-number AI scores, Resu
 - **Education Alignment (10% - Grounded AI):** Checks degree, certifications, and academic prerequisites.
 - **Resume Quality & Formatting (10% - Grounded AI):** Analyzes bullet strength, metric-driven language, and ATS readability.
 
-### 2. "What-If" Skill Simulator & ROI Predictor
+### 2. Market Intelligence & Competitive Research Engine
+Interactive market telemetry and company research built directly into the analysis dashboard:
+- **Dual-Engine Research Pipeline:**
+  - **⚡ Fast Analysis (15–20s):** Multi-tier search cascade (**Tavily API** → **DuckDuckGo** → **Grounded Gemini 3.6 Synthesis**) to extract company tech stack, culture, consensus hiring requirements, and competitive positioning without rate limit bottlenecks.
+  - **🔬 Deep Dive Research (1–3m):** Autonomous multi-step research agent running on the **Gemini Interactions API** (`gemini-deep-research-pro`) with dedicated API key quota isolation, generating 10,000+ words of evidence-backed company hiring intelligence.
+- **Company Profile:** Live telemetry on domain, verified tech stack, peer competitors, engineering culture, and hiring bar summaries.
+- **Consensus vs. Edge Skills:** Identifies table-stakes skills (appearing in 70%+ of target JDs) vs. differentiator skills that command senior compensation.
+- **Pointwise Competitive Strategy:** Tailored, tactical action items ranked by priority (`CRITICAL`, `HIGH`, `MEDIUM`) and effort (`QUICK_WIN`, `SHORT_TERM`, `LONG_TERM`).
+
+### 3. "What-If" Skill Simulator & ROI Predictor
 Interactive sandbox allowing candidates to toggle missing and partial skills in real time:
 - Preview instant score increases before editing their actual resume.
 - **1-Click "⚡ Auto-Solve for 80% Match"** to highlight the highest-leverage skills to acquire or emphasize.
 
-### 3. Cognitive Contrast: Side-by-Side Bullet Diffs
+### 4. Cognitive Contrast: Side-by-Side Bullet Diffs
 - **Before:** Identifies passive, unquantified bullets that fail ATS filters.
 - **After:** Provides an optimized, truthful revision incorporating quantifiable achievements and keywords.
 - **Evidence Drawer:** Cites verbatim requirements from the target job description explaining *why* the change matters.
 - **1-Click Copy:** Instant clipboard copy with visual feedback.
 
-### 4. Multimodal Gemini OCR Fallback
+### 5. Multimodal Gemini OCR Fallback
 - Dual-tier PDF parser: Fast native text extraction via `PyPDF2` with automatic, seamless fallback to **Google Gemini Vision OCR** for scanned, flattened, or image-heavy resumes.
 
-### 5. Resume Revision & Score Delta Diffing
+### 6. Resume Revision & Score Delta Diffing
 - Upload an updated version of a resume against an existing job target.
 - Automatically calculates overall score delta, individual category shifts, newly matched skills, and resolved gaps.
 
-### 6. Power-User Command Palette (`⌘K` / `Ctrl+K`)
+### 7. Power-User Command Palette (`⌘K` / `Ctrl+K`)
 - Keyboard-first command palette for instant navigation (`/dashboard`, `/new`, `/history`, `/settings`), quick actions (`⌘↵` submission), and system status inspection.
 
-### 7. Always-On Mono Status Bar
-- Developer-grade status bar in `Geist Mono` showing live system indicators, analysis state, and route context.
+### 8. Always-On Mono Status Bar
+- Developer-grade status bar in `Geist Mono` showing live system indicators, engine labels, active analysis state, and route context.
 
-### 8. Full Zero-Cost Demo Mode
+### 9. Full Zero-Cost Demo Mode
 - Run and explore the complete application offline or locally without configuring Supabase or Gemini API keys (`DEMO_MODE=true`).
 
 ---
@@ -60,8 +69,10 @@ Interactive sandbox allowing candidates to toggle missing and partial skills in 
 | **Frontend** | React 19, Vite, Tailwind CSS v4 (`@tailwindcss/vite`), Phosphor Icons (`@phosphor-icons/react`), React Router v7, Axios |
 | **Backend** | FastAPI, Python 3.11+, Pydantic v2, `google-genai` SDK, PyPDF2, Uvicorn |
 | **Database & Auth** | Supabase PostgreSQL, Row Level Security (RLS), Supabase Private Storage (`resumes` bucket) |
-| **AI Engine** | Google Gemini 3.6 Flash (`gemini-3.6-flash`) with structured output enforcement |
-| **Testing** | Vitest (Frontend: 18 suites, 65 tests), Pytest (Backend: 85 tests) |
+| **AI Engine** | Google Gemini 3.6 Flash (`gemini-3.6-flash`) with structured JSON schema enforcement |
+| **Deep Research** | Gemini Interactions API (`gemini-deep-research-pro-preview-12-2025`) |
+| **Search Providers** | Tavily Search API (Tier 1) + DuckDuckGo Search (Tier 2 Fallback) |
+| **Testing** | Vitest (Frontend: 19 suites, 74 tests), Pytest (Backend: 106 tests), Adversarial Harness (32 tests) |
 
 ---
 
@@ -105,9 +116,13 @@ DEMO_MODE=false # Set to true for offline demo mode
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 
-# Google Gemini AI Key (Required if DEMO_MODE=false)
+# Google Gemini AI Keys
 GEMINI_API_KEY=your-gemini-api-key
 GEMINI_MODEL=gemini-3.6-flash
+GEMINI_DEEP_RESEARCH_API_KEY=your-deep-research-api-key  # Optional: dedicated key for Deep Dive mode
+
+# Web Search Provider (Optional — enhances Fast Market Intel)
+TAVILY_API_KEY=your-tavily-api-key  # Free tier: 1,000 calls/month
 ```
 
 Start the FastAPI backend:
@@ -149,28 +164,35 @@ Open `http://localhost:5173` in your browser.
 
 ## 🧪 Running Automated Tests
 
-ResumeIQ features a test suite covering boundary cases, adversarial inputs, scoring fidelity, and workflows:
+ResumeIQ features comprehensive automated test coverage across boundary cases, adversarial injections, scoring fidelity, and workflow interactions:
 
-### Backend Pytest Suite (85 Tests)
+### Backend Pytest Suite (106 Tests)
 ```bash
 cd backend
 python -m pytest tests/ -v
 ```
-*Result:* **85 passed (100%)**
+*Result:* **106 passed (100%)**
 
-### Frontend Vitest Suite (65 Tests)
+### Adversarial Security & Ingestion Harness (32 Tests)
+```bash
+cd backend
+python tests/run_adversarial_harness.py
+```
+*Result:* **32 passed (100%)**
+
+### Frontend Vitest Suite (74 Tests)
 ```bash
 cd frontend
 npm test
 ```
-*Result:* **18 test files passed, 65 tests passed (100%)**
+*Result:* **19 test suites passed, 74 tests passed (100%)**
 
-### Production Build Verification
+### Production Bundle Build Verification
 ```bash
 cd frontend
 npm run build
 ```
-*Result:* Clean compilation with 0 errors.
+*Result:* Clean compilation with 0 warnings or errors.
 
 ---
 
@@ -181,7 +203,7 @@ ResumeAI/
 ├── frontend/                     # React 19 + Tailwind CSS v4 Client
 │   ├── src/
 │   │   ├── components/           # UI Components
-│   │   │   ├── analysis/         # BulletDiffCard, ScoreCard, SkillSimulator, ScoreDeltaModal
+│   │   │   ├── analysis/         # BulletDiffCard, ScoreCard, SkillSimulator, MarketIntelligenceTab
 │   │   │   ├── common/           # CommandMenu, LegalModal, EmptyState
 │   │   │   ├── landing/          # HeroPreviewCard (interactive diagnostic)
 │   │   │   ├── layout/           # AppLayout, StatusBar
@@ -194,12 +216,12 @@ ResumeAI/
 │
 ├── backend/                      # FastAPI Python Application
 │   ├── app/
-│   │   ├── api/                  # Endpoints (/analyses, /resumes, /auth, /health)
-│   │   ├── db/                   # Supabase client singleton
-│   │   ├── schemas/              # Pydantic v2 schemas (Analysis, Resume, User, Common)
-│   │   ├── services/             # Orchestrators: analysis, llm, pdf_parser, resume, scoring
+│   │   ├── api/                  # Endpoints (/analyses, /resumes, /auth, /health, /market-intelligence)
+│   │   ├── db/                   # Supabase client singleton with fail-fast initialization
+│   │   ├── schemas/              # Pydantic v2 schemas (Analysis, Resume, User, MarketIntelligence)
+│   │   ├── services/             # Orchestrators: analysis, llm, pdf_parser, resume, scoring, search_provider, market_intelligence
 │   │   └── utils/                # JWT verification, security, file validators
-│   └── tests/                    # Pytest test suites (adversarial, OCR, re-evaluation, scoring)
+│   └── tests/                    # Pytest test suites (adversarial, OCR, re-evaluation, scoring, search)
 │
 ├── AGENTS.md                     # Design Contract & Engineering Rules
 ├── ARCHITECTURE.md               # High-Level Architecture & Data Flows
@@ -214,9 +236,10 @@ ResumeAI/
 
 1. **Supabase Row-Level Security (RLS):** Defense-in-depth ensures users can only access their own resumes and analysis records.
 2. **Explicit User ID Filtering:** Every backend database query explicitly enforces `.eq("user_id", authenticated_user_id)`.
-3. **Magic-Byte PDF Validation:** Uploads are verified for `%PDF-` binary magic headers, preventing spoofed extensions.
-4. **Error Sanitization:** Production mode strips internal stack traces and database details from client-facing 500 error responses.
-5. **Private Storage Isolation:** PDF files are stored in private Supabase Storage buckets under user-scoped paths (`{user_id}/{file_id}.pdf`).
+3. **Fail-Fast Credential Verification:** Backend validates Supabase URL and service role keys on startup, halting with descriptive errors rather than silently degrading into 500 runtime faults.
+4. **Magic-Byte PDF Validation:** Uploads are verified for `%PDF-` binary magic headers, preventing spoofed extensions or malicious script payloads.
+5. **Production Error Sanitization:** Production mode strips internal stack traces, model names, and database connection strings from client-facing HTTP 500/502 responses.
+6. **Private Storage Isolation:** PDF files are stored in private Supabase Storage buckets under user-scoped paths (`{user_id}/{file_id}.pdf`).
 
 ---
 
