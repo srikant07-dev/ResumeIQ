@@ -39,12 +39,14 @@ const EFFORT_LABELS = {
 
 export default function MarketIntelligenceTab({ analysis, onRefresh }) {
   const [isTriggering, setIsTriggering] = useState(false);
+  const [triggeringMode, setTriggeringMode] = useState(null);
+  const [optimisticStatus, setOptimisticStatus] = useState(null);
   const [triggerError, setTriggerError] = useState(null);
   const [expandedSections, setExpandedSections] = useState({});
   const [quota, setQuota] = useState(null);
   const pollRef = useRef(null);
 
-  const status = analysis?.market_intel_status;
+  const status = optimisticStatus || analysis?.market_intel_status;
   const data = analysis?.market_intel_json;
   const companyName = analysis?.company_name || '';
   const jobTitle = analysis?.job_title || '';
@@ -58,6 +60,13 @@ export default function MarketIntelligenceTab({ analysis, onRefresh }) {
       setCompanyInput(analysis.company_name);
     }
   }, [analysis?.company_name]);
+
+  // Clear optimistic status once real DB state has settled
+  useEffect(() => {
+    if (analysis?.market_intel_status && analysis.market_intel_status !== 'running') {
+      setOptimisticStatus(null);
+    }
+  }, [analysis?.market_intel_status]);
 
   // Fetch quota remaining for user
   useEffect(() => {
@@ -75,7 +84,7 @@ export default function MarketIntelligenceTab({ analysis, onRefresh }) {
   useEffect(() => {
     if (status === 'running') {
       pollRef.current = setInterval(() => {
-        onRefresh?.();
+        onRefresh?.(true);
       }, 3000);
     }
     return () => {
@@ -95,17 +104,23 @@ export default function MarketIntelligenceTab({ analysis, onRefresh }) {
     }
 
     setIsTriggering(true);
+    setTriggeringMode(mode);
     setTriggerError(null);
     try {
-      await api.post(`/analyses/${analysis.id}/market-intel/trigger`, {
+      const res = await api.post(`/analyses/${analysis.id}/market-intel/trigger`, {
         mode,
         company_name: targetCo,
       });
-      onRefresh?.();
+      if (res?.data?.status === 'running') {
+        setOptimisticStatus('running');
+      }
+      onRefresh?.(true);
     } catch (err) {
       setTriggerError(err.message || 'Failed to start market intelligence.');
+      setOptimisticStatus(null);
     } finally {
       setIsTriggering(false);
+      setTriggeringMode(null);
     }
   };
 
@@ -209,14 +224,21 @@ export default function MarketIntelligenceTab({ analysis, onRefresh }) {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Fast Analysis */}
             <button
+              type="button"
               onClick={() => handleTrigger('fast')}
               disabled={isTriggering || (!companyInput.trim() && !companyName) || (quota && quota.remaining === 0)}
               className="group text-left p-5 rounded-xl bg-surface-raised/50 border border-border hover:border-accent/40 transition-all duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden"
             >
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <Lightning size={18} weight="fill" className="text-accent" />
-                  <span className="font-display text-sm font-semibold text-ink-primary">Fast Analysis</span>
+                  {triggeringMode === 'fast' ? (
+                    <Spinner size={18} weight="bold" className="text-accent animate-spin" />
+                  ) : (
+                    <Lightning size={18} weight="fill" className="text-accent" />
+                  )}
+                  <span className="font-display text-sm font-semibold text-ink-primary">
+                    {triggeringMode === 'fast' ? 'Starting Fast Analysis...' : 'Fast Analysis'}
+                  </span>
                 </div>
                 <span className="text-[10px] font-mono text-accent bg-accent/10 border border-accent/20 px-1.5 py-0.5 rounded">
                   PRIMARY KEY
@@ -233,14 +255,21 @@ export default function MarketIntelligenceTab({ analysis, onRefresh }) {
 
             {/* Deep Dive */}
             <button
+              type="button"
               onClick={() => handleTrigger('deep')}
               disabled={isTriggering || (!companyInput.trim() && !companyName) || (quota && quota.remaining === 0)}
               className="group text-left p-5 rounded-xl bg-surface-raised/50 border border-accent/30 hover:border-accent/60 transition-all duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden bg-gradient-to-br from-surface-raised/50 to-accent/5"
             >
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <MagnifyingGlass size={18} weight="bold" className="text-accent" />
-                  <span className="font-display text-sm font-semibold text-ink-primary">Deep Dive Research</span>
+                  {triggeringMode === 'deep' ? (
+                    <Spinner size={18} weight="bold" className="text-accent animate-spin" />
+                  ) : (
+                    <MagnifyingGlass size={18} weight="bold" className="text-accent" />
+                  )}
+                  <span className="font-display text-sm font-semibold text-ink-primary">
+                    {triggeringMode === 'deep' ? 'Starting Deep Dive...' : 'Deep Dive Research'}
+                  </span>
                 </div>
                 <span className="text-[10px] font-mono text-accent bg-accent/15 border border-accent/30 px-1.5 py-0.5 rounded font-medium">
                   DEDICATED KEY
@@ -265,11 +294,11 @@ export default function MarketIntelligenceTab({ analysis, onRefresh }) {
                   : 'bg-error/10 text-error border-error/20'
               }`}>
                 <Clock size={12} weight="bold" />
-                <span>Uses [{quota.remaining}/{quota.limit}] remaining analyses today</span>
+                <span>{quota.remaining} of {quota.limit} daily analyses remaining</span>
               </span>
               {quota.remaining === 0 && (
                 <span className="text-xs font-mono text-error">
-                  Daily limit reached. Resets at midnight UTC.
+                  Daily limit reached ({quota.used}/{quota.limit}). Resets at midnight UTC.
                 </span>
               )}
             </div>

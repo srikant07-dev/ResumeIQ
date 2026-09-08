@@ -471,7 +471,7 @@ Include specific evidence, data points, and sources wherever possible."""
             deep_client.interactions.get, id=interaction.id
         )
         if result.status == "completed":
-            report_text = result.outputs[-1].text if result.outputs else ""
+            report_text = getattr(result, "output_text", None) or (result.outputs[-1].text if hasattr(result, "outputs") and result.outputs else "") or ""
             logger.info("Deep Research completed for interaction %s", interaction.id)
             break
         elif result.status in ("failed", "cancelled"):
@@ -667,10 +667,24 @@ async def _update_market_intel_in_db(
             .eq("user_id", user_id) \
             .execute()
     except Exception as e:
-        logger.error(
-            "Failed to update market intel status for analysis %s: %s",
-            analysis_id, e, exc_info=True,
+        logger.warning(
+            "Initial update with market_intel_updated_at failed for analysis %s: %s. Attempting fallback...",
+            analysis_id, e,
         )
+        if "market_intel_updated_at" in update_data:
+            fallback_data = {k: v for k, v in update_data.items() if k != "market_intel_updated_at"}
+            try:
+                supabase.table("analyses") \
+                    .update(fallback_data) \
+                    .eq("id", analysis_id) \
+                    .eq("user_id", user_id) \
+                    .execute()
+                logger.info("Fallback update without market_intel_updated_at succeeded for %s", analysis_id)
+                return
+            except Exception as e2:
+                logger.error("Fallback update also failed for analysis %s: %s", analysis_id, e2, exc_info=True)
+        else:
+            logger.error("Update failed for analysis %s: %s", analysis_id, e, exc_info=True)
 
 
 async def count_user_market_intel_today(user_id: str) -> int:
@@ -693,8 +707,18 @@ async def count_user_market_intel_today(user_id: str) -> int:
             .execute()
         return result.count if result.count is not None else 0
     except Exception as e:
-        logger.error("Failed to count market intel usage for user %s: %s", user_id, e)
-        return 0
+        logger.warning("Query with market_intel_updated_at failed (%s). Falling back to created_at...", e)
+        try:
+            result = supabase.table("analyses") \
+                .select("id", count="exact") \
+                .eq("user_id", user_id) \
+                .not_.is_("market_intel_status", "null") \
+                .gte("created_at", today_start) \
+                .execute()
+            return result.count if result.count is not None else 0
+        except Exception as e2:
+            logger.error("Failed to count market intel usage for user %s: %s", user_id, e2)
+            return 0
 
 
 async def update_market_intel_status(
@@ -775,6 +799,15 @@ async def run_full_market_intelligence(
             "Market intelligence failed for analysis %s: %s",
             analysis_id, e, exc_info=True,
         )
+        err_str = str(e)
+        if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
+            clean_err = "Gemini API rate limit or quota exceeded (429 RESOURCE_EXHAUSTED). Please check your Gemini API plan or try again shortly."
+        elif "API_KEY_INVALID" in err_str or "403" in err_str:
+            clean_err = "Invalid or restricted Gemini API key. Please verify your GEMINI_API_KEY."
+        else:
+            clean_err = f"Intelligence analysis encountered an error: {err_str[:250]}"
+
         await _update_market_intel_in_db(
-            analysis_id, user_id, "failed", error_msg=str(e)
+            analysis_id, user_id, "failed", error_msg=clean_err
         )
+

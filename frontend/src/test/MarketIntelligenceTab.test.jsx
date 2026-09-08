@@ -113,7 +113,7 @@ describe('MarketIntelligenceTab Component', () => {
 
     // Quota badge
     await waitFor(() => {
-      expect(screen.getByText(/Uses \[2\/3\] remaining analyses today/i)).toBeInTheDocument();
+      expect(screen.getByText(/2 of 3 daily analyses remaining/i)).toBeInTheDocument();
     });
   });
 

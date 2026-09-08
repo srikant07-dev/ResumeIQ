@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Literal, Optional
+from typing import Literal, Optional, Union, Any
 from datetime import datetime
 
 class ScoreEvidence(BaseModel):
@@ -149,7 +149,7 @@ class AnalysisResponse(BaseModel):
     # Market Intelligence fields (backwards-compatible: all Optional with None defaults)
     company_name: Optional[str] = None
     market_intel_status: Optional[str] = None       # None | running | completed | failed
-    market_intel_json: Optional[MarketIntelligenceResult] = None
+    market_intel_json: Optional[Union[MarketIntelligenceResult, dict[str, Any]]] = None
     market_intel_updated_at: Optional[datetime] = None
 
 class AnalysisHistoryItem(BaseModel):

@@ -53,15 +53,15 @@ export default function AnalysisResult() {
   const [deltaData, setDeltaData] = useState(null);
   const [isDeltaModalOpen, setIsDeltaModalOpen] = useState(false);
 
-  const fetchAnalysis = useCallback(async () => {
+  const fetchAnalysis = useCallback(async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const res = await api.get(`/analyses/${id}`);
       setAnalysis(res.data);
     } catch {
       // Error state handled by !analysis check in render
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [id]);
 
