@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   ArrowUp,
   ArrowDown,
@@ -16,6 +16,17 @@ import {
  * Shows before/after score bars, improvement badges, and skill migration tracking.
  */
 export default function ScoreDeltaModal({ isOpen, onClose, deltaData, parentAnalysis, newAnalysis }) {
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen || !deltaData) return null;
 
   const { score_delta } = deltaData;

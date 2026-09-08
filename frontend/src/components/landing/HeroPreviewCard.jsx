@@ -136,7 +136,7 @@ export default function HeroPreviewCard() {
                 />
               </svg>
               <div className="absolute flex flex-col items-center justify-center text-center">
-                <span className="font-mono text-3xl font-bold text-ink-primary tabular-nums">
+                <span className="font-mono text-3xl font-semibold text-ink-primary tabular-nums">
                   {currentScore}%
                 </span>
                 <span className={`text-[10px] font-mono uppercase font-semibold ${role.ratingClass}`}>

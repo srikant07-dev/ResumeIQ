@@ -96,7 +96,12 @@ describe('Empirical Adversarial Stress Suite — Frontend Workflows & Interactio
 
   // 1. FAST TAB SWITCHING STRESS
   it('handles burst rapid tab switching across all 5 analysis tabs without desync or crash', async () => {
-    api.get.mockResolvedValueOnce({ data: mockFullAnalysis });
+    api.get.mockImplementation((url) => {
+      if (url?.includes('/market-intel/quota')) {
+        return Promise.resolve({ data: { remaining_today: 3, max_per_day: 3, is_running: false } });
+      }
+      return Promise.resolve({ data: mockFullAnalysis });
+    });
 
     render(
       <MemoryRouter initialEntries={['/analysis/adv-analysis-uuid-1234']}>
@@ -337,7 +342,6 @@ describe('Empirical Adversarial Stress Suite — Frontend Workflows & Interactio
 
   // 8. FILE UPLOAD BOUNDARY TESTING
   it('validates file types and size boundaries during file upload', () => {
-    const alertMock = vi.spyOn(window, 'alert').mockImplementation(() => {});
     const onFileSelected = vi.fn();
 
     render(<FileUpload onFileSelected={onFileSelected} selectedFile={null} error={null} onClear={vi.fn()} />);
@@ -350,7 +354,7 @@ describe('Empirical Adversarial Stress Suite — Frontend Workflows & Interactio
       dataTransfer: { files: [invalidFile] }
     });
 
-    expect(alertMock).toHaveBeenCalledWith('Only PDF documents (.pdf) are supported.');
+    expect(screen.getByText('Only PDF documents (.pdf) are supported.')).toBeInTheDocument();
     expect(onFileSelected).not.toHaveBeenCalled();
 
     // Mock drop valid PDF
@@ -360,7 +364,6 @@ describe('Empirical Adversarial Stress Suite — Frontend Workflows & Interactio
     });
 
     expect(onFileSelected).toHaveBeenCalledWith(validFile);
-    alertMock.mockRestore();
   });
 
   // 9. RESPONSIVE APPLAYOUT & MOBILE MENU TOGGLE

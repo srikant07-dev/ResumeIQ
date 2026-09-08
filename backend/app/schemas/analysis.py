@@ -128,6 +128,7 @@ class AnalysisCreateRequest(BaseModel):
     job_title: str = Field(min_length=2, max_length=200)
     job_description: str = Field(min_length=20, max_length=10000)
     company_name: Optional[str] = Field(default=None, min_length=2, max_length=100)
+    parent_analysis_id: Optional[str] = None
 
 class AnalysisResponse(BaseModel):
     id: str
@@ -144,10 +145,12 @@ class AnalysisResponse(BaseModel):
     result_json: Optional[AnalysisResultData] = None
     error_message: Optional[str] = None
     created_at: Optional[datetime] = None
+    parent_analysis_id: Optional[str] = None
     # Market Intelligence fields (backwards-compatible: all Optional with None defaults)
     company_name: Optional[str] = None
     market_intel_status: Optional[str] = None       # None | running | completed | failed
     market_intel_json: Optional[MarketIntelligenceResult] = None
+    market_intel_updated_at: Optional[datetime] = None
 
 class AnalysisHistoryItem(BaseModel):
     id: str

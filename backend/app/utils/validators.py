@@ -17,23 +17,33 @@ async def validate_pdf_upload(file: UploadFile) -> bytes:
             ).model_dump()
         )
 
-    content = await file.read()
-    
+    CHUNK_SIZE = 64 * 1024  # 64 KB
+    chunks = []
+    total_bytes = 0
+
+    while True:
+        chunk = await file.read(CHUNK_SIZE)
+        if not chunk:
+            break
+        total_bytes += len(chunk)
+        if total_bytes > MAX_FILE_SIZE_BYTES:
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail=ErrorResponse(
+                    code="FILE_TOO_LARGE",
+                    message="File exceeds maximum allowed size of 5 MB."
+                ).model_dump()
+            )
+        chunks.append(chunk)
+
+    content = b"".join(chunks)
+
     if len(content) == 0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=ErrorResponse(
                 code="EMPTY_FILE",
                 message="The uploaded file is empty."
-            ).model_dump()
-        )
-
-    if len(content) > MAX_FILE_SIZE_BYTES:
-        raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail=ErrorResponse(
-                code="FILE_TOO_LARGE",
-                message=f"File exceeds maximum allowed size of 5 MB (received {len(content) / (1024*1024):.2f} MB)."
             ).model_dump()
         )
 

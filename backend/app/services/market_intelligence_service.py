@@ -649,7 +649,10 @@ async def _update_market_intel_in_db(
         return
 
     supabase = get_supabase_client()
-    update_data: dict = {"market_intel_status": status}
+    update_data: dict = {
+        "market_intel_status": status,
+        "market_intel_updated_at": datetime.now(timezone.utc).isoformat(),
+    }
 
     if result is not None:
         update_data["market_intel_json"] = result.model_dump()
@@ -686,7 +689,7 @@ async def count_user_market_intel_today(user_id: str) -> int:
             .select("id", count="exact") \
             .eq("user_id", user_id) \
             .not_.is_("market_intel_status", "null") \
-            .gte("created_at", today_start) \
+            .gte("market_intel_updated_at", today_start) \
             .execute()
         return result.count if result.count is not None else 0
     except Exception as e:

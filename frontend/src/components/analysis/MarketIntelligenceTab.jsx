@@ -49,7 +49,7 @@ export default function MarketIntelligenceTab({ analysis, onRefresh }) {
   const companyName = analysis?.company_name || '';
   const jobTitle = analysis?.job_title || '';
 
-  const [companyInput, setCompanyInput] = useState(companyName || 'Google');
+  const [companyInput, setCompanyInput] = useState(companyName || '');
   const [isEditingCompany, setIsEditingCompany] = useState(!companyName);
 
   // Sync if analysis updates

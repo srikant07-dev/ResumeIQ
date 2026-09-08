@@ -13,26 +13,6 @@ import {
 export default function BulletDiffCard({ rec, index, onCopy, isCopied }) {
   const [showEvidence, setShowEvidence] = useState(false);
 
-  // Generate a plausible "before" baseline from the recommendation's description or title
-  const generateBeforeBullet = () => {
-    if (rec.before_bullet) return rec.before_bullet;
-    // Contextual intelligent synthesis if only suggested_action is present
-    if (rec.title?.toLowerCase().includes('docker') || rec.description?.toLowerCase().includes('docker')) {
-      return "Helped deploy applications on server instances using basic scripting.";
-    }
-    if (rec.title?.toLowerCase().includes('metric') || rec.description?.toLowerCase().includes('metric') || rec.title?.toLowerCase().includes('quantif')) {
-      return "Responsible for maintaining and updating web application features and bug fixes.";
-    }
-    if (rec.title?.toLowerCase().includes('database') || rec.description?.toLowerCase().includes('sql')) {
-      return "Worked on database tables and wrote SQL queries for backend services.";
-    }
-    if (rec.title?.toLowerCase().includes('lead') || rec.title?.toLowerCase().includes('collaborat')) {
-      return "Participated in team meetings and helped other developers write code.";
-    }
-    return "Handled general software development tasks as part of the engineering team.";
-  };
-
-  const beforeText = generateBeforeBullet();
   const afterText = rec.suggested_action || rec.description;
 
   const priorityClasses = {
@@ -87,33 +67,48 @@ export default function BulletDiffCard({ rec, index, onCopy, isCopied }) {
         </p>
       </div>
 
-      {/* Before vs After Diff Container */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 pt-1">
-        {/* Before: Weak / Vague */}
-        <div className="p-3.5 rounded-lg bg-canvas/80 border border-error/20 space-y-2">
-          <div className="flex items-center justify-between text-[11px] font-mono text-error font-medium">
-            <span>BEFORE (GENERIC / UNQUANTIFIED)</span>
-            <span className="line-through text-ink-faint">PASSIVE</span>
+      {/* Before vs After Diff Container OR Single Action Card */}
+      {rec.before_bullet ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 pt-1">
+          {/* Before: Weak / Vague */}
+          <div className="p-3.5 rounded-lg bg-canvas/80 border border-error/20 space-y-2">
+            <div className="flex items-center justify-between text-[11px] font-mono text-error font-medium">
+              <span>BEFORE (IDENTIFIED IN RESUME)</span>
+              <span className="line-through text-ink-faint">REVISE</span>
+            </div>
+            <p className="text-xs text-ink-muted leading-relaxed line-through decoration-error/40 font-body">
+              {rec.before_bullet}
+            </p>
           </div>
-          <p className="text-xs text-ink-muted leading-relaxed line-through decoration-error/40 font-body">
-            {beforeText}
-          </p>
-        </div>
 
-        {/* After: Optimized & Metric-Driven */}
-        <div className="p-3.5 rounded-lg bg-accent/5 border border-accent/30 space-y-2 relative">
+          {/* After: Optimized & Metric-Driven */}
+          <div className="p-3.5 rounded-lg bg-accent/5 border border-accent/30 space-y-2 relative">
+            <div className="flex items-center justify-between text-[11px] font-mono text-accent font-medium">
+              <span className="flex items-center gap-1">
+                <Sparkle size={13} weight="fill" />
+                OPTIMIZED REVISION
+              </span>
+              <span className="text-[10px] uppercase font-semibold text-accent">READY</span>
+            </div>
+            <p className="text-xs text-ink-primary leading-relaxed font-body font-medium">
+              {afterText}
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="p-3.5 rounded-lg bg-accent/5 border border-accent/30 space-y-2 pt-1">
           <div className="flex items-center justify-between text-[11px] font-mono text-accent font-medium">
             <span className="flex items-center gap-1">
               <Sparkle size={13} weight="fill" />
-              AFTER (METRIC & KEYWORD GROUNDED)
+              RECOMMENDED ACTION
             </span>
-            <span className="text-[10px] uppercase font-bold text-accent">READY</span>
+            <span className="text-[10px] uppercase font-semibold text-accent">READY</span>
           </div>
           <p className="text-xs text-ink-primary leading-relaxed font-body font-medium">
             {afterText}
           </p>
         </div>
-      </div>
+      )}
 
       {/* Toggleable Evidence Citation */}
       {rec.evidence && (

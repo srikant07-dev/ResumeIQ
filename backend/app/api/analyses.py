@@ -1,7 +1,12 @@
 import asyncio
+import logging
 from fastapi import APIRouter, Depends, HTTPException, status
 from app.utils.security import get_current_user
 from app.config import get_settings
+
+logger = logging.getLogger(__name__)
+active_background_tasks: set[asyncio.Task] = set()
+
 from app.services.analysis_service import (
     create_and_run_analysis,
     get_analysis_by_id,
@@ -158,9 +163,11 @@ async def trigger_market_intelligence(
 
     # Set status to running and spawn background task
     await update_market_intel_status(analysis_id, user_id, "running")
-    asyncio.create_task(
+    task = asyncio.create_task(
         run_full_market_intelligence(analysis_id, user_id, mode=req.mode, company_name=target_company)
     )
+    active_background_tasks.add(task)
+    task.add_done_callback(active_background_tasks.discard)
 
     mode_label = "deep dive" if req.mode == "deep" else "fast"
     return MarketIntelTriggerResponse(

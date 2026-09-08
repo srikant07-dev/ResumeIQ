@@ -55,6 +55,8 @@ Bachelor of Technology (B.Tech) in Computer Science & Engineering
 National Institute of Technology | 2017 - 2021 | CGPA: 8.6/10
 """.strip()
 
+MAX_DEMO_STORE_SIZE = 100
+
 # In-memory store for Demo Mode session analyses
 DEMO_ANALYSES_STORE: dict[str, AnalysisResponse] = {}
 
@@ -200,6 +202,7 @@ async def create_and_run_analysis(
         result_json=result_data,
         created_at=now_utc,
         company_name=req.company_name,
+        parent_analysis_id=req.parent_analysis_id,
     )
 
     # 4. Save to database or Demo Store
@@ -210,6 +213,9 @@ async def create_and_run_analysis(
         or user_id == "00000000-0000-0000-0000-000000000000"
     ):
         DEMO_ANALYSES_STORE[analysis_id] = response_obj
+        if len(DEMO_ANALYSES_STORE) > MAX_DEMO_STORE_SIZE:
+            oldest_key = next(iter(DEMO_ANALYSES_STORE))
+            DEMO_ANALYSES_STORE.pop(oldest_key, None)
         return response_obj
 
     supabase = get_supabase_client()
@@ -231,6 +237,8 @@ async def create_and_run_analysis(
         }
         if req.company_name:
             insert_payload["company_name"] = req.company_name
+        if req.parent_analysis_id:
+            insert_payload["parent_analysis_id"] = req.parent_analysis_id
         supabase.table("analyses").insert(insert_payload).execute()
     except Exception as insert_err:
         logger.error("Failed to persist completed analysis to database: %s", insert_err, exc_info=True)
@@ -238,8 +246,7 @@ async def create_and_run_analysis(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=ErrorResponse(
                 code="DATABASE_ERROR",
-                message="Failed to save completed analysis record.",
-                details={"error": str(insert_err)}
+                message="Failed to save completed analysis record."
             ).model_dump()
         )
 
@@ -313,8 +320,7 @@ async def get_analysis_by_id(analysis_id: str, user_id: str) -> AnalysisResponse
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=ErrorResponse(
                 code="DATABASE_ERROR",
-                message="Database error while querying analysis record.",
-                details={"error": str(e)}
+                message="Database error while querying analysis record."
             ).model_dump()
         )
 
@@ -416,8 +422,7 @@ async def delete_user_analysis(analysis_id: str, user_id: str) -> dict:
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=ErrorResponse(
                 code="DATABASE_ERROR",
-                message="Database error while verifying analysis record.",
-                details={"error": str(e)}
+                message="Database error while verifying analysis record."
             ).model_dump()
         )
 
@@ -430,8 +435,7 @@ async def delete_user_analysis(analysis_id: str, user_id: str) -> dict:
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=ErrorResponse(
                 code="DELETE_FAILED",
-                message="Failed to delete analysis record.",
-                details={"error": str(e)}
+                message="Failed to delete analysis record."
             ).model_dump()
         )
 
@@ -461,6 +465,7 @@ async def re_evaluate_analysis(
         job_title=parent.job_title,
         job_description=parent.job_description,
         company_name=parent.company_name,
+        parent_analysis_id=parent_analysis_id,
     )
     new_analysis = await create_and_run_analysis(new_analysis_req, user_id)
 

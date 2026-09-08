@@ -1,7 +1,10 @@
+import logging
 from fastapi import Header, HTTPException, status
 from app.config import get_settings
 from app.db.supabase import get_supabase_client
 from app.schemas.common import ErrorResponse
+
+logger = logging.getLogger(__name__)
 
 DEMO_USER_ID = "00000000-0000-0000-0000-000000000000"
 
@@ -63,12 +66,12 @@ async def get_current_user(authorization: str = Header(None)) -> str:
             raise ValueError("User not found for token")
         return str(user_response.user.id)
     except Exception as e:
+        logger.error("Authentication failed: %s", e)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=ErrorResponse(
                 code="UNAUTHORIZED",
-                message="Invalid or expired session token. Please sign in again.",
-                details={"error": str(e)}
+                message="Invalid or expired session token. Please sign in again."
             ).model_dump()
         )
 

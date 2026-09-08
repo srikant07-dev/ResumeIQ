@@ -12,14 +12,25 @@ describe('BulletDiffCard Component', () => {
     evidence: 'Strong SQL and database optimization background required for high-volume transactions.'
   };
 
-  it('renders recommendation title, priority badge, and diff sections', () => {
+  it('renders recommendation title, priority badge, and recommended action card when before_bullet is not present', () => {
     render(<BulletDiffCard rec={mockRec} index={0} onCopy={vi.fn()} isCopied={false} />);
 
     expect(screen.getByText('Add Concrete Database Performance Metrics')).toBeInTheDocument();
     expect(screen.getByText('HIGH priority')).toBeInTheDocument();
-    expect(screen.getByText('BEFORE (GENERIC / UNQUANTIFIED)')).toBeInTheDocument();
-    expect(screen.getByText(/AFTER \(METRIC & KEYWORD GROUNDED\)/)).toBeInTheDocument();
+    expect(screen.getByText('RECOMMENDED ACTION')).toBeInTheDocument();
     expect(screen.getByText(/reducing p99 latency by 38%/)).toBeInTheDocument();
+  });
+
+  it('renders before and after diff when before_bullet is present', () => {
+    const recWithBefore = {
+      ...mockRec,
+      before_bullet: 'Wrote database queries.'
+    };
+    render(<BulletDiffCard rec={recWithBefore} index={0} onCopy={vi.fn()} isCopied={false} />);
+
+    expect(screen.getByText('BEFORE (IDENTIFIED IN RESUME)')).toBeInTheDocument();
+    expect(screen.getByText('Wrote database queries.')).toBeInTheDocument();
+    expect(screen.getByText('OPTIMIZED REVISION')).toBeInTheDocument();
   });
 
   it('triggers onCopy handler when clicking Copy Action button', () => {

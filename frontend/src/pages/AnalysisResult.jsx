@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, NavLink, useNavigate } from 'react-router';
 import api from '../services/api';
 import SkillSimulator from '../components/analysis/SkillSimulator';
@@ -26,6 +26,10 @@ import {
   TrendUp,
   X,
   Globe,
+  ShareNetwork,
+  Trash,
+  Info,
+  Briefcase
 } from '@phosphor-icons/react';
 
 export default function AnalysisResult() {
@@ -49,11 +53,7 @@ export default function AnalysisResult() {
   const [deltaData, setDeltaData] = useState(null);
   const [isDeltaModalOpen, setIsDeltaModalOpen] = useState(false);
 
-  useEffect(() => {
-    fetchAnalysis();
-  }, [id]);
-
-  const fetchAnalysis = async () => {
+  const fetchAnalysis = useCallback(async () => {
     try {
       setLoading(true);
       const res = await api.get(`/analyses/${id}`);
@@ -63,7 +63,11 @@ export default function AnalysisResult() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    fetchAnalysis();
+  }, [fetchAnalysis]);
 
   const toggleScoreEvidence = (key) => {
     setExpandedScores(prev => ({ ...prev, [key]: !prev[key] }));

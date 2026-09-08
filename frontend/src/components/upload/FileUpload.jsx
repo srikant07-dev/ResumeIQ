@@ -34,23 +34,11 @@ export default function FileUpload({ onFileSelected, selectedFile, error, onClea
 
   const validateAndPassFile = (file) => {
     if (!file.name.toLowerCase().endsWith('.pdf')) {
-      const msg = 'Only PDF documents (.pdf) are supported.';
-      setLocalError(msg);
-      try {
-        if (typeof window !== 'undefined' && typeof window.alert === 'function') {
-          window.alert(msg);
-        }
-      } catch {}
+      setLocalError('Only PDF documents (.pdf) are supported.');
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      const msg = 'File exceeds the 5 MB maximum size limit.';
-      setLocalError(msg);
-      try {
-        if (typeof window !== 'undefined' && typeof window.alert === 'function') {
-          window.alert(msg);
-        }
-      } catch {}
+      setLocalError('File exceeds the 5 MB maximum size limit.');
       return;
     }
     setLocalError(null);

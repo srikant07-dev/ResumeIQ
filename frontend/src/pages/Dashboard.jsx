@@ -139,15 +139,7 @@ export default function Dashboard() {
               <div
                 key={item.id}
                 onClick={() => navigate(`/analysis/${item.id}`)}
-                className={`p-4 sm:p-5 flex items-center justify-between hover:bg-surface-raised/60 transition-colors duration-150 cursor-pointer group btn-press ${
-                  typeof item.overall_score === 'number'
-                    ? item.overall_score >= 75
-                      ? 'border-l-2 border-l-score-strong'
-                      : item.overall_score >= 50
-                      ? 'border-l-2 border-l-score-partial'
-                      : 'border-l-2 border-l-score-weak'
-                    : ''
-                }`}
+                className="p-4 sm:p-5 flex items-center justify-between hover:bg-surface-raised/60 transition-colors duration-150 cursor-pointer group btn-press"
               >
                 <div className="flex items-center gap-4 min-w-0">
                   <div className="w-10 h-10 rounded-lg bg-surface-raised flex items-center justify-center text-ink-muted group-hover:text-accent transition-colors shrink-0">

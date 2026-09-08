@@ -13,6 +13,8 @@ logger = logging.getLogger(__name__)
 
 MOCK_RESUME_ID = "11111111-1111-1111-1111-111111111111"
 
+MAX_DEMO_STORE_SIZE = 100
+
 # In-memory store for Demo Mode uploads
 DEMO_RESUMES_STORE: list[ResumeListItem] = [
     ResumeListItem(
@@ -58,6 +60,8 @@ async def upload_and_process_resume(file: UploadFile, user_id: str) -> ResumeCre
         # Mock/Demo Mode fallback with in-memory persistence
         item = ResumeListItem(id=file_id, file_name=safe_filename, created_at=now_utc)
         DEMO_RESUMES_STORE.insert(0, item)
+        if len(DEMO_RESUMES_STORE) > MAX_DEMO_STORE_SIZE:
+            DEMO_RESUMES_STORE.pop()
         return ResumeCreateResponse(
             id=file_id,
             file_name=safe_filename,
@@ -80,8 +84,7 @@ async def upload_and_process_resume(file: UploadFile, user_id: str) -> ResumeCre
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=ErrorResponse(
                 code="STORAGE_UPLOAD_ERROR",
-                message="Failed to persist resume file into storage.",
-                details={"error": str(e)}
+                message="Failed to persist resume file into storage."
             ).model_dump()
         )
 
@@ -108,8 +111,7 @@ async def upload_and_process_resume(file: UploadFile, user_id: str) -> ResumeCre
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=ErrorResponse(
                 code="DATABASE_ERROR",
-                message="Failed to save resume record.",
-                details={"error": str(e)}
+                message="Failed to save resume record."
             ).model_dump()
         )
 
@@ -178,8 +180,7 @@ async def delete_user_resume(resume_id: str, user_id: str) -> dict:
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=ErrorResponse(
                 code="DATABASE_ERROR",
-                message="Database error while querying resume record.",
-                details={"error": str(e)}
+                message="Database error while querying resume record."
             ).model_dump()
         )
 
@@ -203,8 +204,7 @@ async def delete_user_resume(resume_id: str, user_id: str) -> dict:
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=ErrorResponse(
                 code="DELETE_FAILED",
-                message="Failed to complete resume deletion.",
-                details={"error": str(e)}
+                message="Failed to complete resume deletion."
             ).model_dump()
         )
 
