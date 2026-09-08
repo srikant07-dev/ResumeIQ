@@ -35,7 +35,9 @@ def test_delete_user_resume_demo_mode(auth_headers):
     """Verifies deleting a resume in demo mode returns status deleted."""
     resume_id = "11111111-1111-1111-1111-111111111111"
     response = client.delete(f"/api/resumes/{resume_id}", headers=auth_headers)
-    assert response.status_code in [200, 404]
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "deleted"
 
 # ==============================================================================
 # Tier 2: Boundary & Corner Cases (Invalid Extension, Empty, Oversize, Bad Header)
@@ -82,7 +84,6 @@ def test_delete_nonexistent_resume_returns_404(auth_headers):
     """
     non_existent_id = "00000000-9999-9999-9999-000000000000"
     response = client.delete(f"/api/resumes/{non_existent_id}", headers=auth_headers)
-    assert response.status_code in [200, 404]
-    if response.status_code == 404:
-        data = response.json()
-        assert data["code"] == "RESUME_NOT_FOUND"
+    assert response.status_code == 404
+    data = response.json()
+    assert data["code"] == "RESUME_NOT_FOUND"

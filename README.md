@@ -19,10 +19,10 @@
 ### 1. Hybrid Scoring Engine (Deterministic + Grounded AI)
 Rather than relying on opaque, hallucination-prone single-number AI scores, ResumeIQ calculates an explainable composite match:
 - **Skills Match (35% - Deterministic):** Direct token and semantic intersection across required vs. demonstrated competencies.
+- **Experience Relevance (25% - Grounded AI):** Evaluates depth, seniority, and quantifiable impact with required verbatim citations.
 - **Keywords Match (20% - Deterministic):** Exact tracking categorized across technical proficiencies, soft skills, and industry domain terminology.
-- **Experience Relevance (20% - Grounded AI):** Evaluates depth, seniority, and quantifiable impact with required verbatim citations.
 - **Education Alignment (10% - Grounded AI):** Checks degree, certifications, and academic prerequisites.
-- **Resume Formatting & Impact (15% - Grounded AI):** Analyzes bullet strength, metric-driven language, and ATS readability.
+- **Resume Quality & Formatting (10% - Grounded AI):** Analyzes bullet strength, metric-driven language, and ATS readability.
 
 ### 2. "What-If" Skill Simulator & ROI Predictor
 Interactive sandbox allowing candidates to toggle missing and partial skills in real time:

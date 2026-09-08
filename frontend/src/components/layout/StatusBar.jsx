@@ -44,9 +44,8 @@ export default function StatusBar({ activeState = 'ACTIVE', onOpenCommandMenu })
         )}
 
         <span className="hidden md:inline text-ink-subtle">REGION: ap-south-1</span>
-        <span className="text-ink-faint hidden md:inline">|</span>
         <span className="hidden sm:inline text-ink-muted tabular-nums">
-          RTT: 14ms
+          ENGINE: GEMINI_3.6_FLASH
         </span>
         <span className="text-ink-faint hidden sm:inline">|</span>
         <span className="text-accent flex items-center gap-1 font-medium">

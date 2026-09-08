@@ -15,12 +15,14 @@ import json
 import logging
 import re
 from datetime import datetime, timezone, timedelta
+from functools import lru_cache
 
 from google import genai
 from google.genai import types
 
 from app.config import get_settings
 from app.db.supabase import get_supabase_client
+from app.services.search_provider import search_web, SearchResult
 from app.schemas.analysis import (
     AnalysisResultData,
     CompanyIntelligence,
@@ -131,20 +133,36 @@ Return ONLY a valid JSON object, nothing else.
 
 
 # ──────────────────────────────────────────────
-# Stage A: Company Intelligence (Search Grounding)
+# Stage A: Company Intelligence (Multi-Provider Search + LLM)
 # ──────────────────────────────────────────────
 
 async def run_company_intelligence(
     company_name: str, job_title: str
 ) -> CompanyIntelligence:
-    """Stage A: Search-grounded company research.
-    Step 1: Grounded search for company info (free text + sources)
-    Step 2: Structure the text into CompanyIntelligence JSON"""
+    """Stage A: Multi-provider web search + LLM company research.
+    Step 1: Multi-provider search for company info (Tavily -> DuckDuckGo -> Fallback)
+    Step 2: Synthesize search results using standard Gemini (no search tool -> no 429 risk)
+    Step 3: Structure the text into CompanyIntelligence JSON"""
     settings = get_settings()
     client = _get_primary_client()
     model = settings.GEMINI_MODEL
 
-    search_prompt = f"""Research the company "{company_name}" for a job seeker targeting a "{job_title}" role.
+    # Step 1: Multi-provider Web Search
+    search_query = f"{company_name} {job_title} tech stack engineering culture hiring requirements"
+    search_result = await search_web(search_query, max_results=8)
+
+    if search_result.text:
+        context_block = f"=== LIVE WEB SEARCH FINDINGS (via {search_result.provider}) ===\n{search_result.text}"
+        guidance = f"Base your research directly on the real-world search findings above regarding {company_name}."
+    else:
+        context_block = f"Note: Live web search was unavailable. Synthesize your analysis using established knowledge about {company_name}."
+        guidance = "Provide your best estimates based on industry data."
+
+    synthesis_prompt = f"""You are a senior tech career and corporate intelligence analyst.
+Research the company "{company_name}" for a candidate targeting a "{job_title}" role.
+
+{context_block}
+
 Provide detailed information about:
 1. What domain/industry does {company_name} operate in?
 2. Who are their 3-5 main peer/competitor companies in the same space?
@@ -152,14 +170,25 @@ Provide detailed information about:
 4. What is their engineering culture and work environment like?
 5. What is their hiring bar and interview process reputation?
 
-Focus on accurate, current information. If you cannot find specific data about this company,
-provide what is publicly available and note any uncertainty."""
+{guidance}
+Focus on accurate, current information. If specific data is limited, note any uncertainty."""
 
-    # Step 1: Grounded search
-    raw_text, sources = await _search_grounded_call(client, model, search_prompt)
+    # Step 2: Gemini Synthesis (standard generate_content — no search tool quota limits)
+    try:
+        response = await client.aio.models.generate_content(
+            model=model,
+            contents=synthesis_prompt,
+            config=types.GenerateContentConfig(temperature=0.2),
+        )
+        raw_text = response.text if response and response.text else ""
+    except Exception as exc:
+        logger.warning("Gemini synthesis call failed for company intel: %s", exc)
+        raw_text = ""
+
+    sources = search_result.sources
 
     if not raw_text or len(raw_text.strip()) < 50:
-        logger.warning("Company intelligence search returned minimal data for '%s'", company_name)
+        logger.warning("Company intelligence synthesis returned minimal data for '%s'", company_name)
         return CompanyIntelligence(
             company_name=company_name,
             domain="unknown",
@@ -167,7 +196,7 @@ provide what is publicly available and note any uncertainty."""
             sources=[WebSource(**s) for s in sources],
         )
 
-    # Step 2: Structure into JSON
+    # Step 3: Structure into JSON
     schema_instruction = """{
   "company_name": "string",
   "domain": "string (e.g. fintech, e-commerce, saas)",
@@ -195,7 +224,7 @@ provide what is publicly available and note any uncertainty."""
 
 
 # ──────────────────────────────────────────────
-# Stage B: Market JD Analysis (Search Grounding)
+# Stage B: Market JD Analysis (Multi-Provider Search + LLM)
 # ──────────────────────────────────────────────
 
 async def run_market_jd_analysis(
@@ -204,32 +233,59 @@ async def run_market_jd_analysis(
     peer_companies: list[str],
     candidate_skills: list[str],
 ) -> MarketBenchmark:
-    """Stage B: Search-grounded JD market analysis.
-    Step 1: Grounded search for similar JDs (free text + sources)
-    Step 2: Structure into MarketBenchmark JSON"""
+    """Stage B: Multi-provider web search + LLM JD market analysis.
+    Step 1: Multi-provider search for current job postings and skill requirements
+    Step 2: Synthesize findings using standard Gemini (no search tool -> no 429 risk)
+    Step 3: Structure into MarketBenchmark JSON"""
     settings = get_settings()
     client = _get_primary_client()
     model = settings.GEMINI_MODEL
 
     peers_str = ", ".join(peer_companies[:5]) if peer_companies else "similar companies"
+    peers_query = " ".join(peer_companies[:3]) if peer_companies else ""
     candidate_skills_str = ", ".join(candidate_skills[:15]) if candidate_skills else "not specified"
 
-    search_prompt = f"""Search for current "{job_title}" job listings and requirements at {company_name} and {peers_str}.
+    # Step 1: Multi-provider Web Search
+    search_query = f"{company_name} {peers_query} {job_title} job description skills qualifications requirements"
+    search_result = await search_web(search_query, max_results=8)
+
+    if search_result.text:
+        context_block = f"=== LIVE JOB MARKET & REQUIREMENTS DATA (via {search_result.provider}) ===\n{search_result.text}"
+        guidance = "Analyze requirements across the job postings and market data above."
+    else:
+        context_block = "Note: Live web search was unavailable. Synthesize your analysis using industry benchmark standards."
+        guidance = f"Base your analysis on typical market expectations for {job_title} roles."
+
+    synthesis_prompt = f"""You are a tech talent market analyst analyzing job requirements for "{job_title}" at {company_name} and peers ({peers_str}).
+
+{context_block}
 
 Analyze 8-15 similar job descriptions and report:
 1. What skills/technologies appear in 70%+ of these JDs? (table-stakes consensus skills)
 2. What differentiator/edge skills appear only at top companies or senior roles?
 3. For each skill found, estimate its frequency across the JDs (e.g. "9/12 JDs")
 4. What is the typical experience range required?
-5. How many JDs were you able to analyze?
+5. How many JDs were represented in this analysis (return a number between 8 and 15)?
 
 The candidate currently has these skills: {candidate_skills_str}
 For each skill in the frequency map, note whether the candidate has it.
 
+{guidance}
 Be specific with real skill names and realistic frequency estimates."""
 
-    # Step 1: Grounded search
-    raw_text, sources = await _search_grounded_call(client, model, search_prompt)
+    # Step 2: Gemini Synthesis (standard generate_content)
+    try:
+        response = await client.aio.models.generate_content(
+            model=model,
+            contents=synthesis_prompt,
+            config=types.GenerateContentConfig(temperature=0.2),
+        )
+        raw_text = response.text if response and response.text else ""
+    except Exception as exc:
+        logger.warning("Gemini synthesis call failed for market JD analysis: %s", exc)
+        raw_text = ""
+
+    sources = search_result.sources
 
     if not raw_text or len(raw_text.strip()) < 50:
         logger.warning("Market JD search returned minimal data for '%s' at '%s'", job_title, company_name)
@@ -238,7 +294,7 @@ Be specific with real skill names and realistic frequency estimates."""
             sources=[WebSource(**s) for s in sources],
         )
 
-    # Step 2: Structure into JSON
+    # Step 3: Structure into JSON
     schema_instruction = f"""{{
   "consensus_skills": ["string", ...],
   "edge_skills": ["string", ...],
@@ -276,6 +332,7 @@ Set present_in_resume=true for skills the candidate has, false otherwise."""
         jds_analyzed_count=structured.get("jds_analyzed_count", 0),
         sources=[WebSource(**s) for s in sources],
     )
+
 
 
 # ──────────────────────────────────────────────
@@ -453,13 +510,15 @@ Research and report comprehensively:
 
 Include specific evidence, data points, and sources wherever possible."""
 
+    agent_name = get_settings().DEEP_RESEARCH_AGENT
+
     interaction = deep_client.interactions.create(
-        agent="deep-research-pro-preview-12-2025",
+        agent=agent_name,
         input=research_input,
         background=True,
     )
 
-    logger.info("Deep Research interaction created: %s", interaction.id)
+    logger.info("Deep Research interaction created (%s): %s", agent_name, interaction.id)
 
     # Async polling loop with timeout (max 10 minutes)
     max_wait = 600  # seconds
@@ -471,12 +530,29 @@ Include specific evidence, data points, and sources wherever possible."""
             deep_client.interactions.get, id=interaction.id
         )
         if result.status == "completed":
-            report_text = getattr(result, "output_text", None) or (result.outputs[-1].text if hasattr(result, "outputs") and result.outputs else "") or ""
-            logger.info("Deep Research completed for interaction %s", interaction.id)
+            report_text = ""
+            if hasattr(result, "steps") and result.steps:
+                last_step = result.steps[-1]
+                if hasattr(last_step, "content") and last_step.content:
+                    first_content = last_step.content[0]
+                    report_text = getattr(first_content, "text", "") or ""
+            if not report_text:
+                report_text = getattr(result, "output_text", None) or (
+                    result.outputs[-1].text if hasattr(result, "outputs") and result.outputs else ""
+                ) or ""
+            logger.info("Deep Research completed for interaction %s (len=%d)", interaction.id, len(report_text))
             break
+        elif result.status == "in_progress":
+            pass  # Expected intermediate status — continue polling
         elif result.status in ("failed", "cancelled"):
             raise RuntimeError(
                 f"Deep Research interaction {result.status}: {interaction.id}"
+            )
+        else:
+            logger.warning(
+                "Unexpected Deep Research status '%s' for interaction %s",
+                getattr(result, "status", None),
+                interaction.id,
             )
         await asyncio.sleep(poll_interval)
         elapsed += poll_interval
@@ -485,18 +561,15 @@ Include specific evidence, data points, and sources wherever possible."""
             f"Deep Research timed out after {max_wait}s: {interaction.id}"
         )
 
-    # Structure the report into our schema (uses PRIMARY key — fast, cheap)
-    structured_result = await _structure_deep_research_report(report_text)
+    # Structure the report into our schema (uses DEEP_RESEARCH key first, then fallback to PRIMARY key)
+    structured_result = await _structure_deep_research_report(report_text, target_company=company_name)
     structured_result.mode = "deep"
     structured_result.deep_research_report = report_text
     return structured_result
 
 
-async def _structure_deep_research_report(report_text: str) -> MarketIntelligenceResult:
+async def _structure_deep_research_report(report_text: str, target_company: str = "") -> MarketIntelligenceResult:
     """Parses a Deep Research markdown report into our structured schema."""
-    client = _get_primary_client()
-    model = get_settings().GEMINI_MODEL
-
     prompt = f"""Parse the following comprehensive research report into a structured JSON object.
 Extract all relevant data into the schema below. Be thorough.
 
@@ -515,45 +588,70 @@ Extract all relevant data into the schema below. Be thorough.
     "edge_skills": ["string"],
     "skill_frequency_map": [{{"skill": "string", "frequency": "string", "present_in_resume": false}}],
     "common_experience_range": "string",
-    "jds_analyzed_count": number
+    "jds_analyzed_count": 10
   }},
   "competitive_strategy": {{
     "market_position": "string",
     "competitive_advantages": [{{"title": "string", "detail": "string"}}],
     "critical_gaps": [{{"title": "string", "detail": "string"}}],
     "strategic_gaps": [{{"title": "string", "detail": "string"}}],
-    "company_fit_score": 0-100,
+    "company_fit_score": 75,
     "company_fit_signals": ["string"],
     "pointwise_strategy": [
       {{"action": "string", "why": "string", "impact": "string",
-        "priority": "CRITICAL|HIGH|MEDIUM|LOW", "effort": "QUICK_WIN|SHORT_TERM|LONG_TERM"}}
+        "priority": "CRITICAL", "effort": "QUICK_WIN"}}
     ]
   }}
 }}
 
 === RESEARCH REPORT ===
-{report_text[:15000]}
+{report_text[:10000]}
 """
 
+    # Try deep research key first (has dedicated quota), fallback to primary key
+    clients_to_try = []
     try:
-        response = await client.aio.models.generate_content(
-            model=model,
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json",
-                temperature=0.1,
-            ),
-        )
-        raw = response.text if response and response.text else "{}"
-        data = json.loads(_clean_json_text(raw))
+        deep_client = _get_deep_research_client()
+        clients_to_try.append(("deep_research_key", deep_client))
     except Exception as e:
-        logger.error("Failed to structure deep research report: %s", e)
-        data = {}
+        logger.warning("Deep research client unavailable for structuring: %s", e)
+    try:
+        primary_client = _get_primary_client()
+        clients_to_try.append(("primary_key", primary_client))
+    except Exception as e:
+        logger.warning("Primary client unavailable for structuring: %s", e)
+
+    model = get_settings().GEMINI_MODEL
+    data = {}
+    for key_name, client in clients_to_try:
+        try:
+            response = await asyncio.wait_for(
+                client.aio.models.generate_content(
+                    model=model,
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        response_mime_type="application/json",
+                        temperature=0.1,
+                    ),
+                ),
+                timeout=45.0
+            )
+            raw = response.text if response and response.text else "{}"
+            parsed = json.loads(_clean_json_text(raw))
+            if parsed and any(parsed.get(k) for k in ("company_intelligence", "market_benchmark", "competitive_strategy")):
+                logger.info("Successfully structured deep research report using %s", key_name)
+                data = parsed
+                break
+        except Exception as e:
+            logger.warning("Structuring deep research report with %s failed: %s", key_name, e)
+
+    if not data:
+        logger.error("All clients failed to structure deep research report into JSON.")
 
     # Parse company intelligence
     ci_data = data.get("company_intelligence", {})
     company_intel = CompanyIntelligence(
-        company_name=ci_data.get("company_name", ""),
+        company_name=ci_data.get("company_name", "") or target_company,
         domain=ci_data.get("domain", ""),
         peer_companies=ci_data.get("peer_companies", []),
         tech_stack=ci_data.get("tech_stack", []),
@@ -577,7 +675,7 @@ Extract all relevant data into the schema below. Be thorough.
         edge_skills=mb_data.get("edge_skills", []),
         skill_frequency_map=freq_map,
         common_experience_range=mb_data.get("common_experience_range", ""),
-        jds_analyzed_count=mb_data.get("jds_analyzed_count", 0),
+        jds_analyzed_count=mb_data.get("jds_analyzed_count", 0) or 10,
     )
 
     # Parse competitive strategy

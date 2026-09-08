@@ -8,13 +8,13 @@ describe('AnalysisLoading Stepped Scanner Component Testing', () => {
 
     expect(screen.getByText(/PIPELINE_ACTIVE/i)).toBeInTheDocument();
     expect(screen.getByText(/Evaluating Resume Alignment/i)).toBeInTheDocument();
-    expect(screen.getByText(/PHASE 01 \/ 05/i)).toBeInTheDocument();
+    expect(screen.getByText(/Evaluation Scope/i)).toBeInTheDocument();
     expect(screen.getByText(/ELAPSED:/i)).toBeInTheDocument();
-    expect(screen.getByText(/PDF Structure & Text Extraction/i)).toBeInTheDocument();
-    expect(screen.getByText(/Deterministic Skill & Keyword Matching/i)).toBeInTheDocument();
+    expect(screen.getByText(/PDF Structure & Section Isolation/i)).toBeInTheDocument();
+    expect(screen.getByText(/Deterministic Skill & Keyword Comparison/i)).toBeInTheDocument();
     expect(screen.getByText(/Experience Relevance & Academic Alignment/i)).toBeInTheDocument();
-    expect(screen.getByText(/Hybrid Score Matrix Calculation/i)).toBeInTheDocument();
+    expect(screen.getByText(/Hybrid Weighted Score Matrix Calculation/i)).toBeInTheDocument();
     expect(screen.getByText(/Actionable Insights & Rewrite Synthesis/i)).toBeInTheDocument();
-    expect(screen.getByText('RUNNING')).toBeInTheDocument();
+    expect(screen.getByText(/Google Gemini 3.6 Flash/i)).toBeInTheDocument();
   });
 });

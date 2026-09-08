@@ -36,7 +36,7 @@ async def _extract_text_with_gemini_multimodal(pdf_bytes: bytes) -> str:
         "Do not summarize, paraphrase, or extrapolate. Return only the raw text content."
     )
 
-    models_to_try = [settings.GEMINI_MODEL, "gemini-3.5-flash", "gemini-flash-latest"]
+    models_to_try = [settings.GEMINI_MODEL, "gemini-3.6-flash"]
     seen = set()
     unique_models = [m for m in models_to_try if m and not (m in seen or seen.add(m))]
 

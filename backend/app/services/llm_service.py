@@ -41,7 +41,7 @@ async def _generate_content_with_fallback(client: genai.Client, prompt: str, tem
     to alternative flash models if the primary model encounters a transient error or overload.
     """
     settings = get_settings()
-    models_to_try = [settings.GEMINI_MODEL, "gemini-3.5-flash", "gemini-flash-latest"]
+    models_to_try = [settings.GEMINI_MODEL, "gemini-3.6-flash"]
     seen = set()
     unique_models = [m for m in models_to_try if m and not (m in seen or seen.add(m))]
 
@@ -68,10 +68,12 @@ async def _generate_content_with_fallback(client: genai.Client, prompt: str, tem
     raise RuntimeError("Failed to generate content with all configured Gemini models.")
 
 def _sanitize_delimiters(text: str) -> str:
-    """Strips XML-like boundary tags from user input to prevent prompt injection escapes."""
+    """Strips XML-like boundary tags and prompt override attempts from user input."""
     if not text:
         return ""
-    return re.sub(r'</?(?:candidate_resume|target_job_spec|system|prompt)[^>]*>', '', text, flags=re.IGNORECASE)
+    cleaned = re.sub(r'</?(?:candidate_resume|target_job_spec|system|prompt)[^>]*>', '', text, flags=re.IGNORECASE)
+    cleaned = re.sub(r'===\s*(?:RESUME TEXT|JOB DESCRIPTION|SYSTEM)\s*===', '', cleaned, flags=re.IGNORECASE)
+    return cleaned
 
 async def run_stage_1_comparison(resume_text: str, job_description: str) -> dict:
     """

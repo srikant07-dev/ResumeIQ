@@ -63,10 +63,10 @@ Once the analysis finishes (usually 10 to 15 seconds), the user sees:
   * Red (<50%): Weak Match / High Risk of ATS rejection
 - 5 Category Sub-Scores:
   1. Skills Match (35% weight)
-  2. Experience Relevance (20% weight)
+  2. Experience Relevance (25% weight)
   3. Keyword Optimization (20% weight)
-  4. Resume Quality & Formatting (15% weight)
-  5. Education Alignment (10% weight)
+  4. Education Alignment (10% weight)
+  5. Resume Quality & Formatting (10% weight)
 - Skill Gap Analysis:
   * Matched Skills (e.g., Python, React)
   * Partial Skills (e.g., you have SQL, but the job asks for PostgreSQL indexing)

@@ -253,28 +253,25 @@ describe('Empirical Adversarial Stress Suite — Frontend Workflows & Interactio
     expect(parsed.user.email).toBe('demo.developer@resumeiq.app');
   });
 
-  // 5. ANALYSIS LOADING STEPPED SCANNER TIMERS
-  it('progresses through all 5 analysis phases and increments elapsed timer correctly', () => {
+  // 5. ANALYSIS LOADING TIMERS
+  it('increments elapsed timer correctly during active analysis loading', () => {
     vi.useFakeTimers();
 
     render(<AnalysisLoading />);
 
     expect(screen.getByText(/PIPELINE_ACTIVE/i)).toBeInTheDocument();
-    expect(screen.getByText(/PHASE 01 \/ 05/i)).toBeInTheDocument();
     expect(screen.getByText(/ELAPSED: 00:00s/i)).toBeInTheDocument();
 
-    // Advance 3.5 seconds -> Phase 02
+    // Advance 3 seconds
     act(() => {
-      vi.advanceTimersByTime(3500);
+      vi.advanceTimersByTime(3000);
     });
-    expect(screen.getByText(/PHASE 02 \/ 05/i)).toBeInTheDocument();
     expect(screen.getByText(/ELAPSED: 00:03s/i)).toBeInTheDocument();
 
-    // Advance another 11 seconds -> Phase 05 (final phase)
+    // Advance another 11 seconds
     act(() => {
       vi.advanceTimersByTime(11000);
     });
-    expect(screen.getByText(/PHASE 05 \/ 05/i)).toBeInTheDocument();
     expect(screen.getByText(/ELAPSED: 00:14s/i)).toBeInTheDocument();
   });
 

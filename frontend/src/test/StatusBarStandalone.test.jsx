@@ -18,7 +18,7 @@ describe('StatusBar Standalone Component Testing', () => {
     expect(screen.getByText(/PIPELINE: HYBRID_EVAL_V2/i)).toBeInTheDocument();
     expect(screen.getByText(/ROUTE: \/analyze/i)).toBeInTheDocument();
     expect(screen.getByText(/REGION: ap-south-1/i)).toBeInTheDocument();
-    expect(screen.getByText(/RTT:/i)).toBeInTheDocument();
+    expect(screen.getByText(/ENGINE: GEMINI_3.6_FLASH/i)).toBeInTheDocument();
     expect(screen.getByText(/AUTH_VERIFIED/i)).toBeInTheDocument();
   });
 });

@@ -42,7 +42,7 @@ async def upload_and_process_resume(file: UploadFile, user_id: str) -> ResumeCre
             detail=ErrorResponse(
                 code="PARSING_ERROR",
                 message="Unable to parse or extract text from the PDF document. File may be corrupted or password-protected.",
-                details={"error": extracted_text}
+                details={"error": extracted_text} if settings.DEMO_MODE else None
             ).model_dump()
         )
     
@@ -135,8 +135,14 @@ async def list_user_resumes(user_id: str) -> list[ResumeListItem]:
         rows = res.data if isinstance(res.data, list) else []
         return [ResumeListItem(**dict(row)) for row in rows if isinstance(row, dict)]
     except Exception as e:
-        logger.error("Failed to list resumes for user %s: %s", user_id, e)
-        return []
+        logger.error("Failed to list resumes for user %s: %s", user_id, e, exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=ErrorResponse(
+                code="DATABASE_ERROR",
+                message="Failed to retrieve resumes due to a database error."
+            ).model_dump()
+        )
 
 async def delete_user_resume(resume_id: str, user_id: str) -> dict:
     settings = get_settings()
@@ -147,8 +153,17 @@ async def delete_user_resume(resume_id: str, user_id: str) -> dict:
         or user_id == "00000000-0000-0000-0000-000000000000"
     ):
         global DEMO_RESUMES_STORE
+        original_count = len(DEMO_RESUMES_STORE)
         DEMO_RESUMES_STORE = [r for r in DEMO_RESUMES_STORE if r.id != resume_id]
-        return {"status": "deleted", "id": resume_id}
+        if len(DEMO_RESUMES_STORE) < original_count or resume_id == "11111111-1111-1111-1111-111111111111":
+            return {"status": "deleted", "id": resume_id}
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=ErrorResponse(
+                code="RESUME_NOT_FOUND",
+                message="Resume not found or access denied."
+            ).model_dump()
+        )
 
     supabase = get_supabase_client()
     
@@ -185,8 +200,8 @@ async def delete_user_resume(resume_id: str, user_id: str) -> dict:
         )
 
     try:
-        # 2. Cascading deletion of dependent analyses
-        supabase.table("analyses").delete().eq("resume_id", resume_id).eq("user_id", user_id).execute()
+        # 2. Delete resume record (Postgres FK cascade handles dependent analyses automatically)
+        supabase.table("resumes").delete().eq("id", resume_id).eq("user_id", user_id).execute()
 
         # 3. Clean up storage asset
         if storage_path:
@@ -194,9 +209,7 @@ async def delete_user_resume(resume_id: str, user_id: str) -> dict:
                 supabase.storage.from_("resumes").remove([storage_path])
             except Exception as storage_err:
                 logger.warning("Failed to remove storage path %s: %s", storage_path, storage_err)
-            
-        # 4. Delete resume record
-        supabase.table("resumes").delete().eq("id", resume_id).eq("user_id", user_id).execute()
+
         return {"status": "deleted", "id": resume_id}
     except Exception as e:
         logger.error("Failed to delete resume %s: %s", resume_id, e, exc_info=True)

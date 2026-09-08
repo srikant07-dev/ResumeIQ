@@ -241,11 +241,11 @@ export default function MarketIntelligenceTab({ analysis, onRefresh }) {
                   </span>
                 </div>
                 <span className="text-[10px] font-mono text-accent bg-accent/10 border border-accent/20 px-1.5 py-0.5 rounded">
-                  PRIMARY KEY
+                  WEB SEARCH
                 </span>
               </div>
               <p className="text-xs text-ink-muted leading-relaxed mb-3">
-                Live Google Search-grounded intelligence. Discovers company domain, tech stack, peer JDs, and table-stakes vs edge skills.
+                Live web-powered intelligence. Discovers company domain, tech stack, peer JDs, and table-stakes vs edge skills.
               </p>
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-mono text-ink-subtle">~20-30 seconds</span>
@@ -272,7 +272,7 @@ export default function MarketIntelligenceTab({ analysis, onRefresh }) {
                   </span>
                 </div>
                 <span className="text-[10px] font-mono text-accent bg-accent/15 border border-accent/30 px-1.5 py-0.5 rounded font-medium">
-                  DEDICATED KEY
+                  DEEP RESEARCH
                 </span>
               </div>
               <p className="text-xs text-ink-muted leading-relaxed mb-3">
@@ -338,7 +338,7 @@ export default function MarketIntelligenceTab({ analysis, onRefresh }) {
               'Generating competitive improvement strategy',
             ].map((step, i) => (
               <div key={i} className="flex items-center gap-3 p-3 rounded-lg bg-surface-raised/30">
-                <div className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
+                <div className="w-1.5 h-1.5 rounded-full bg-accent" />
                 <span className="text-xs text-ink-muted">{step}</span>
               </div>
             ))}
@@ -367,6 +367,11 @@ export default function MarketIntelligenceTab({ analysis, onRefresh }) {
   }
 
   const { company_intelligence: ci, market_benchmark: mb, competitive_strategy: cs } = data;
+
+  const hasCompanyData = Boolean(ci && (ci.domain || ci.tech_stack?.length > 0 || ci.peer_companies?.length > 0 || ci.engineering_culture?.length > 0 || ci.hiring_bar_summary));
+  const hasBenchmarkData = Boolean(mb && (mb.consensus_skills?.length > 0 || mb.edge_skills?.length > 0 || mb.skill_frequency_map?.length > 0));
+  const hasStrategyData = Boolean(cs && (cs.competitive_advantages?.length > 0 || cs.critical_gaps?.length > 0 || cs.strategic_gaps?.length > 0 || cs.pointwise_strategy?.length > 0 || cs.company_fit_score > 0));
+  const hasOnlyReport = !hasCompanyData && !hasBenchmarkData && !hasStrategyData && Boolean(data.deep_research_report);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
@@ -401,8 +406,23 @@ export default function MarketIntelligenceTab({ analysis, onRefresh }) {
       </div>
 
 
+      {/* ── Notice if only raw report is available ── */}
+      {hasOnlyReport && (
+        <div className="p-4 rounded-xl bg-surface border border-accent/20 flex items-start gap-3">
+          <Sparkle size={18} className="text-accent shrink-0 mt-0.5" />
+          <div className="text-xs">
+            <span className="font-semibold text-ink-primary block mb-1">
+              Autonomous Deep Research Report Available
+            </span>
+            <p className="text-ink-muted leading-relaxed">
+              The comprehensive multi-source investigation report is displayed below.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* ── Section 1: Company Profile ── */}
-      {ci && (
+      {hasCompanyData && (
         <div className="bg-surface border border-border rounded-xl overflow-hidden">
           <button
             onClick={() => toggleSection('company')}
@@ -515,7 +535,7 @@ export default function MarketIntelligenceTab({ analysis, onRefresh }) {
 
 
       {/* ── Section 2: Market Skill Matrix ── */}
-      {mb && (
+      {hasBenchmarkData && (
         <div className="bg-surface border border-border rounded-xl overflow-hidden">
           <div className="p-4 sm:p-5 border-b border-border-subtle flex items-center justify-between">
             <div className="flex items-center gap-2.5">
@@ -620,7 +640,7 @@ export default function MarketIntelligenceTab({ analysis, onRefresh }) {
 
 
       {/* ── Section 3: Competitive Position ── */}
-      {cs && (
+      {hasStrategyData && (
         <div className="bg-surface border border-border rounded-xl overflow-hidden">
           <div className="p-4 sm:p-5 border-b border-border-subtle flex items-center justify-between">
             <div className="flex items-center gap-2.5">

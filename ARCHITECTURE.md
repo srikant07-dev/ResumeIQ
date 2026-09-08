@@ -69,7 +69,7 @@ Rather than issuing 4 slow sequential LLM calls or 1 fragile mega-call, ResumeIQ
 ## 3. Hybrid Scoring Engine
 
 Final Match Score:
-$$\text{Overall Score} = 0.40 \times \text{Skills} + 0.25 \times \text{Experience} + 0.15 \times \text{Keywords} + 0.10 \times \text{Education} + 0.10 \times \text{Quality}$$
+$$\text{Overall Score} = 0.35 \times \text{Skills} + 0.25 \times \text{Experience} + 0.20 \times \text{Keywords} + 0.10 \times \text{Education} + 0.10 \times \text{Quality}$$
 
 - **Skills Score (Deterministic):**
   $$\text{Skills Score} = \min\left(100, \text{round}\left(\frac{\text{Strong Matches} + 0.5 \times \text{Partial Matches}}{\max(1, \text{Total Required Skills})} \times 100\right)\right)$$

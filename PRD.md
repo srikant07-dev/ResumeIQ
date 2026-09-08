@@ -25,7 +25,7 @@ ResumeIQ is an AI-powered SaaS product designed to help job seekers (specificall
 - PDF resume upload with client and server validation (MIME, max 5MB, integrity).
 - Text extraction from multi-page PDFs using PyPDF2.
 - Job description input form (with character count & validation).
-- Hybrid scoring pipeline (Skills 40%, Experience 25%, Keywords 15%, Education 10%, Quality 10%).
+- Hybrid scoring pipeline (Skills 35%, Experience 25%, Keywords 20%, Education 10%, Quality 10%).
 - 2-stage Gemini pipeline (Stage 1: Extract & Compare, Stage 2: Recommendation Generation).
 - Structured results dashboard (Overview, Skills, Keywords, Experience, Recommendations).
 - Expandable "Why this score?" evidence citations on all sub-scores.

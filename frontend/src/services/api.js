@@ -19,36 +19,23 @@ api.interceptors.request.use(async (config) => {
     }
   }
 
+  let token = null;
   try {
     const { data: { session } } = await supabase.auth.getSession();
-    if (session?.access_token) {
-      config.headers.Authorization = `Bearer ${session.access_token}`;
-    } else {
-      const demoSession = typeof window !== 'undefined' ? localStorage.getItem('resumeiq_demo_session') : null;
-      if (demoSession) {
-        try {
-          const parsed = JSON.parse(demoSession);
-          if (parsed?.access_token) {
-            config.headers.Authorization = `Bearer ${parsed.access_token}`;
-          }
-        } catch (e) {
-          // ignore parsing error
-        }
-      }
-    }
-  } catch (err) {
-    const demoSession = typeof window !== 'undefined' ? localStorage.getItem('resumeiq_demo_session') : null;
-    if (demoSession) {
-      try {
-        const parsed = JSON.parse(demoSession);
-        if (parsed?.access_token) {
-          config.headers.Authorization = `Bearer ${parsed.access_token}`;
-        }
-      } catch (e) {
-        // ignore parsing error
-      }
-    }
+    token = session?.access_token;
+  } catch {}
+
+  if (!token && typeof window !== 'undefined') {
+    try {
+      const demo = JSON.parse(localStorage.getItem('resumeiq_demo_session') || '{}');
+      token = demo?.access_token;
+    } catch {}
   }
+
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+
   return config;
 }, (error) => Promise.reject(error));
 

@@ -56,6 +56,11 @@
 | `status` | TEXT | NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'completed', 'failed')) | Analysis progress status |
 | `result_json` | JSONB | NULLABLE | Complete structured result |
 | `error_message`| TEXT | NULLABLE | Failure error description |
+| `company_name` | TEXT | NULLABLE | Target company name for market intelligence |
+| `market_intel_status` | TEXT | NULLABLE, CHECK IN ('running', 'completed', 'failed') | Background market intelligence status |
+| `market_intel_json` | JSONB | NULLABLE | Structured company intelligence and market benchmark |
+| `market_intel_updated_at` | TIMESTAMPTZ | NULLABLE | Timestamp when market intelligence last ran |
+| `parent_analysis_id` | UUID | NULLABLE, FK -> `public.analyses(id)` ON DELETE SET NULL | Parent analysis for re-evaluation revisions |
 | `created_at` | TIMESTAMPTZ | DEFAULT `now()` | Timestamp |
 | `updated_at` | TIMESTAMPTZ | DEFAULT `now()` | Timestamp |
 
@@ -67,6 +72,8 @@ CREATE INDEX idx_resumes_user_id ON public.resumes(user_id);
 CREATE INDEX idx_analyses_user_id ON public.analyses(user_id);
 CREATE INDEX idx_analyses_resume_id ON public.analyses(resume_id);
 CREATE INDEX idx_analyses_created_at ON public.analyses(created_at DESC);
+CREATE INDEX idx_analyses_market_intel_user_date ON public.analyses(user_id, created_at) WHERE market_intel_status IS NOT NULL;
+CREATE INDEX idx_analyses_market_intel_updated ON public.analyses(user_id, market_intel_updated_at);
 ```
 
 ---

@@ -16,6 +16,10 @@ def get_supabase_client() -> Client:
     url = settings.SUPABASE_URL
     key = settings.SUPABASE_SERVICE_ROLE_KEY
 
+    if not settings.DEMO_MODE and (not url or not key or "placeholder" in (url or "") or "placeholder" in (key or "")):
+        logger.critical("FATAL: Supabase credentials not configured in production mode (DEMO_MODE=False).")
+        raise RuntimeError("FATAL: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be valid non-placeholder values in production mode.")
+
     if not url or not key:
         logger.warning(
             "Supabase credentials not configured (SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY missing). "

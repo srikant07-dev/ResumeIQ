@@ -28,11 +28,11 @@ class TestBoundaryAndResilience:
     def test_nonexistent_analysis_uuid_returns_404(self, client):
         random_uuid = "99999999-9999-9999-9999-999999999999"
         res = client.get(f"/api/analyses/{random_uuid}", headers=DEMO_AUTH)
-        assert res.status_code in [200, 404]
+        assert res.status_code == 404
 
     def test_delete_nonexistent_resume_returns_404_or_success(self, client):
         res = client.delete("/api/resumes/99999999-9999-9999-9999-999999999999", headers=DEMO_AUTH)
-        assert res.status_code in [200, 404]
+        assert res.status_code == 404
 
     # 2. Malformed / Empty Payloads -> HTTP 422
     def test_empty_analysis_payload_returns_422(self, client):

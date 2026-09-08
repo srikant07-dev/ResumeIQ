@@ -76,8 +76,8 @@ async def create_and_run_analysis(
     # 1. Resume Ownership & Text Retrieval
     resume_text = SAMPLE_CANDIDATE_RESUME_TEXT
     
-    # Allow pre-seeded sample resume ID in both demo and live modes
-    if req.resume_id == MOCK_RESUME_ID:
+    # Allow pre-seeded sample resume ID in demo mode or for demo user
+    if req.resume_id == MOCK_RESUME_ID and (settings.DEMO_MODE or user_id == "00000000-0000-0000-0000-000000000000"):
         pass  # Uses verified sample candidate text
     elif (
         not settings.DEMO_MODE
@@ -163,12 +163,13 @@ async def create_and_run_analysis(
                 except Exception as db_err:
                     logger.error("Failed to record failed analysis status to DB: %s", db_err)
 
+            logger.error("AI evaluation engine failed for analysis %s: %s", analysis_id, ai_err, exc_info=True)
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
                 detail=ErrorResponse(
                     code="AI_SERVICE_ERROR",
-                    message="AI analysis engine encountered an error while processing the resume.",
-                    details={"error": str(ai_err)}
+                    message="AI analysis engine encountered an issue processing the resume. Please try again.",
+                    details={"error": str(ai_err)} if settings.DEMO_MODE else None
                 ).model_dump()
             )
 
@@ -381,8 +382,14 @@ async def list_user_analyses(user_id: str) -> list[AnalysisHistoryItem]:
                 items.append(AnalysisHistoryItem(**row_dict))
         return items
     except Exception as e:
-        logger.error("Failed to list analyses for user %s: %s", user_id, e)
-        return []
+        logger.error("Failed to list analyses for user %s: %s", user_id, e, exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=ErrorResponse(
+                code="DATABASE_ERROR",
+                message="Failed to retrieve historical analyses due to a database error."
+            ).model_dump()
+        )
 
 async def delete_user_analysis(analysis_id: str, user_id: str) -> dict:
     settings = get_settings()
@@ -392,8 +399,18 @@ async def delete_user_analysis(analysis_id: str, user_id: str) -> dict:
         or not settings.SUPABASE_SERVICE_ROLE_KEY
         or user_id == "00000000-0000-0000-0000-000000000000"
     ):
-        DEMO_ANALYSES_STORE.pop(analysis_id, None)
-        return {"status": "deleted", "id": analysis_id}
+        if analysis_id in DEMO_ANALYSES_STORE:
+            DEMO_ANALYSES_STORE.pop(analysis_id, None)
+            return {"status": "deleted", "id": analysis_id}
+        if analysis_id in (MOCK_ANALYSIS_ID_1, MOCK_ANALYSIS_ID_2):
+            return {"status": "deleted", "id": analysis_id}
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=ErrorResponse(
+                code="ANALYSIS_NOT_FOUND",
+                message="Analysis record not found or access denied."
+            ).model_dump()
+        )
 
     supabase = get_supabase_client()
     try:

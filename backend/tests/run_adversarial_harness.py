@@ -5,6 +5,9 @@ from pathlib import Path
 backend_dir = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(backend_dir))
 
+import os
+os.environ["DEMO_MODE"] = "true"
+
 import time
 import asyncio
 import io
@@ -12,8 +15,11 @@ import json
 import httpx
 from fastapi.testclient import TestClient
 
-from app.main import app
 from app.config import get_settings
+get_settings.cache_clear()
+get_settings().DEMO_MODE = True
+
+from app.main import app
 from app.services.scoring_service import (
     calculate_skills_score,
     calculate_keyword_score,
@@ -44,21 +50,21 @@ def run_all_adversarial_tests():
     log_section("1. Non-Existent UUIDs Handling")
     # A. GET non-existent analysis
     res = client.get("/api/analyses/00000000-0000-0000-0000-999999999999", headers={"Authorization": "Bearer demo-token"})
-    if res.status_code in [200, 404]:
+    if res.status_code == 404:
         record_pass("GET /api/analyses/{non_existent_uuid}", f"Status: {res.status_code}")
     else:
         record_fail("GET /api/analyses/{non_existent_uuid}", f"Unexpected status {res.status_code}: {res.text}")
 
     # B. DELETE non-existent resume
     res = client.delete("/api/resumes/00000000-0000-0000-0000-999999999999", headers={"Authorization": "Bearer demo-token"})
-    if res.status_code in [200, 404]:
+    if res.status_code == 404:
         record_pass("DELETE /api/resumes/{non_existent_uuid}", f"Status: {res.status_code}")
     else:
         record_fail("DELETE /api/resumes/{non_existent_uuid}", f"Unexpected status {res.status_code}: {res.text}")
 
     # C. DELETE non-existent analysis
     res = client.delete("/api/analyses/00000000-0000-0000-0000-999999999999", headers={"Authorization": "Bearer demo-token"})
-    if res.status_code in [200, 404]:
+    if res.status_code == 404:
         record_pass("DELETE /api/analyses/{non_existent_uuid}", f"Status: {res.status_code}")
     else:
         record_fail("DELETE /api/analyses/{non_existent_uuid}", f"Unexpected status {res.status_code}: {res.text}")
@@ -191,7 +197,14 @@ def run_all_adversarial_tests():
         record_fail("Upload oversized PDF (>5MB)", f"Status: {res.status_code}")
 
     # F. Valid PDF upload
-    valid_pdf = b"%PDF-1.4\n1 0 obj<</Type/Catalog>>endobj\nxref\n0 1\n0000000000 65535 f\ntrailer<</Size 1/Root 1 0 R>>\n%%EOF"
+    valid_pdf = (
+        b"%PDF-1.4\n"
+        b"1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n"
+        b"2 0 obj<</Type/Pages/Count 1/Kids[3 0 R]>>endobj\n"
+        b"3 0 obj<</Type/Page/MediaBox[0 0 612 792]/Parent 2 0 R/Resources<<>>>>endobj\n"
+        b"xref\n0 4\n0000000000 65535 f \n0000000009 00000 n \n0000000052 00000 n \n0000000101 00000 n \n"
+        b"trailer<</Size 4/Root 1 0 R>>\nstartxref\n178\n%%EOF\n"
+    )
     res = client.post("/api/resumes", files={"file": ("valid_resume.pdf", io.BytesIO(valid_pdf), "application/pdf")}, headers={"Authorization": "Bearer demo-token"})
     if res.status_code == 201:
         record_pass("Upload valid PDF", f"HTTP 201 Created (id={res.json().get('id')})")

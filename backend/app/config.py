@@ -23,6 +23,10 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: str = ""
     GEMINI_DEEP_RESEARCH_API_KEY: str = ""  # Dedicated key for Deep Dive mode (isolated rate limits)
     GEMINI_MODEL: str = "gemini-3.6-flash"
+    DEEP_RESEARCH_AGENT: str = "deep-research-preview-04-2026"
+
+    # Search Provider (Tavily Tier 1, DuckDuckGo Tier 2 fallback)
+    TAVILY_API_KEY: str = ""
 
     # Market Intelligence
     MARKET_INTEL_DAILY_LIMIT: int = 3  # Max market intel analyses per user per day

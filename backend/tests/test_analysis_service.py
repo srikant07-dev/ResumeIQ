@@ -42,13 +42,10 @@ def test_get_analysis_detail_mock(auth_headers):
     """Verifies retrieving detail for demo analysis record."""
     # Test with standard demo analysis ID
     response = client.get("/api/analyses/22222222-2222-2222-2222-222222222221", headers=auth_headers)
-    if response.status_code == 200:
-        data = response.json()
-        assert data["status"] == "completed"
-        assert data["result_json"] is not None
-    else:
-        # If running in pure mock mode without db rows, ensure it returns 404 or 200 cleanly
-        assert response.status_code in [200, 404]
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "completed"
+    assert data["result_json"] is not None
 
 # ==============================================================================
 # Tier 2: Boundary & Corner Cases (Validation, Non-Existent IDs, Missing Fields)
@@ -84,13 +81,15 @@ def test_get_nonexistent_analysis_returns_404(auth_headers):
     """
     non_existent_id = "00000000-9999-9999-9999-000000000000"
     response = client.get(f"/api/analyses/{non_existent_id}", headers=auth_headers)
-    assert response.status_code in [200, 404] # In demo fallback or db 404
-    if response.status_code == 404:
-        data = response.json()
-        assert data["code"] == "ANALYSIS_NOT_FOUND"
+    assert response.status_code == 404
+    data = response.json()
+    assert data["code"] == "ANALYSIS_NOT_FOUND"
 
 def test_delete_analysis_endpoint(auth_headers):
     """Verifies analysis deletion endpoint response."""
     test_id = "22222222-2222-2222-2222-222222222222"
     response = client.delete(f"/api/analyses/{test_id}", headers=auth_headers)
-    assert response.status_code in [200, 404]
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "deleted"
+
