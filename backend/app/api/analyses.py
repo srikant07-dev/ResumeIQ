@@ -113,16 +113,27 @@ async def trigger_market_intelligence(
             ).model_dump(),
         )
 
-    # Guard: Load analysis, verify ownership and company_name exists
+    # Guard: Load analysis, verify ownership and company_name exists (from request or stored analysis)
     analysis = await get_analysis_by_id(analysis_id, user_id)
-    if not analysis.company_name:
+    target_company = (req.company_name or analysis.company_name or "").strip()
+    if not target_company:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=ErrorResponse(
                 code="NO_COMPANY_NAME",
-                message="This analysis has no company name. Re-run with a company name to use Market Intelligence.",
+                message="Please provide a target company name to run Market Intelligence.",
             ).model_dump(),
         )
+
+    # Persist company name to analysis record if newly provided
+    if req.company_name and req.company_name.strip() != (analysis.company_name or ""):
+        analysis.company_name = req.company_name.strip()
+        if not settings.DEMO_MODE and settings.SUPABASE_URL and user_id != "00000000-0000-0000-0000-000000000000":
+            try:
+                from app.db.supabase import get_supabase_client
+                get_supabase_client().table("analyses").update({"company_name": analysis.company_name}).eq("id", analysis_id).eq("user_id", user_id).execute()
+            except Exception as e:
+                logger.warning("Failed to update company_name on analysis %s: %s", analysis_id, e)
 
     # Guard: Already running
     if analysis.market_intel_status == "running":
@@ -148,7 +159,7 @@ async def trigger_market_intelligence(
     # Set status to running and spawn background task
     await update_market_intel_status(analysis_id, user_id, "running")
     asyncio.create_task(
-        run_full_market_intelligence(analysis_id, user_id, mode=req.mode)
+        run_full_market_intelligence(analysis_id, user_id, mode=req.mode, company_name=target_company)
     )
 
     mode_label = "deep dive" if req.mode == "deep" else "fast"

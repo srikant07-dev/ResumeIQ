@@ -49,14 +49,19 @@ export default function MarketIntelligenceTab({ analysis, onRefresh }) {
   const companyName = analysis?.company_name || '';
   const jobTitle = analysis?.job_title || '';
 
-  const isDemo = typeof window !== 'undefined' && (
-    Boolean(localStorage.getItem('resumeiq_demo_session')) ||
-    Boolean(analysis?.user_id?.startsWith('demo-'))
-  );
+  const [companyInput, setCompanyInput] = useState(companyName || 'Google');
+  const [isEditingCompany, setIsEditingCompany] = useState(!companyName);
+
+  // Sync if analysis updates
+  useEffect(() => {
+    if (analysis?.company_name) {
+      setCompanyInput(analysis.company_name);
+    }
+  }, [analysis?.company_name]);
 
   // Fetch quota remaining for user
   useEffect(() => {
-    if (isDemo || !analysis?.id) return;
+    if (!analysis?.id) return;
     let isMounted = true;
     api.get(`/analyses/${analysis.id}/market-intel/quota`)
       .then(res => {
@@ -64,7 +69,7 @@ export default function MarketIntelligenceTab({ analysis, onRefresh }) {
       })
       .catch(err => console.warn('Could not fetch market intel quota:', err));
     return () => { isMounted = false; };
-  }, [analysis?.id, status, isDemo]);
+  }, [analysis?.id, status]);
 
   // Poll for completion when status is "running"
   useEffect(() => {
@@ -83,10 +88,19 @@ export default function MarketIntelligenceTab({ analysis, onRefresh }) {
   }, []);
 
   const handleTrigger = async (mode = 'fast') => {
+    const targetCo = companyInput.trim() || companyName;
+    if (!targetCo) {
+      setTriggerError('Please enter a target company name to analyze.');
+      return;
+    }
+
     setIsTriggering(true);
     setTriggerError(null);
     try {
-      await api.post(`/analyses/${analysis.id}/market-intel/trigger`, { mode });
+      await api.post(`/analyses/${analysis.id}/market-intel/trigger`, {
+        mode,
+        company_name: targetCo,
+      });
       onRefresh?.();
     } catch (err) {
       setTriggerError(err.message || 'Failed to start market intelligence.');
@@ -110,24 +124,72 @@ export default function MarketIntelligenceTab({ analysis, onRefresh }) {
             </div>
             <div>
               <h3 className="font-display text-lg font-semibold text-ink-primary">
-                Market Intelligence
+                Market Intelligence & Deep Research Engine
               </h3>
               <p className="text-xs text-ink-muted mt-0.5">
-                Analyze how your resume compares against the market for <span className="font-semibold text-ink-primary">{jobTitle}</span> roles
-                {companyName && <> at <span className="font-semibold text-ink-primary">{companyName}</span> and similar companies</>}
+                Benchmark your resume against market standards for <span className="font-semibold text-ink-primary">{jobTitle}</span> roles
+                {(companyInput.trim() || companyName) && (
+                  <> at <span className="font-semibold text-accent">{companyInput.trim() || companyName}</span> and peer companies</>
+                )}
               </p>
             </div>
           </div>
 
-          {isDemo && (
-            <div className="p-3.5 rounded-lg bg-surface-raised border border-border text-xs text-ink-muted flex items-start gap-2.5">
-              <WarningCircle size={16} weight="fill" className="text-score-partial shrink-0 mt-0.5" />
-              <div>
-                <span className="font-medium text-ink-primary block mb-0.5">Demo Mode Active</span>
-                Market Intelligence requires live web research and is disabled in Demo Mode. Switch to a standard account to access live market intelligence.
-              </div>
+          {/* Target Company Selector */}
+          <div className="p-4 rounded-xl bg-surface-raised/40 border border-border space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-mono uppercase text-ink-muted tracking-wider">
+                Target Company Name
+              </label>
+              {companyName && (
+                <button
+                  type="button"
+                  onClick={() => setIsEditingCompany(!isEditingCompany)}
+                  className="text-[11px] font-mono text-accent hover:underline cursor-pointer"
+                >
+                  {isEditingCompany ? 'Lock Target' : 'Change Company'}
+                </button>
+              )}
             </div>
-          )}
+
+            {(!companyName || isEditingCompany) ? (
+              <div className="space-y-2.5">
+                <input
+                  type="text"
+                  value={companyInput}
+                  onChange={(e) => setCompanyInput(e.target.value)}
+                  placeholder="e.g. Stripe, Google, OpenAI, Microsoft, Meta"
+                  className="w-full px-3.5 py-2.5 rounded-md bg-surface border border-border text-sm text-ink-primary font-display placeholder-ink-subtle focus:outline-none focus:ring-2 focus:ring-accent"
+                />
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-[10px] font-mono text-ink-subtle">Quick select:</span>
+                  {['Stripe', 'Google', 'OpenAI', 'Microsoft', 'Meta', 'Amazon'].map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => setCompanyInput(c)}
+                      className={`px-2.5 py-1 rounded text-[11px] font-mono border cursor-pointer transition-colors ${
+                        companyInput === c
+                          ? 'bg-accent/15 text-accent border-accent/30 font-medium'
+                          : 'bg-surface text-ink-muted border-border hover:text-ink-primary hover:bg-surface-raised'
+                      }`}
+                    >
+                      {c}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2.5">
+                <span className="font-display font-semibold text-ink-primary text-base">
+                  {companyName}
+                </span>
+                <span className="text-[10px] font-mono text-accent bg-accent/10 border border-accent/20 px-2 py-0.5 rounded">
+                  Target Set
+                </span>
+              </div>
+            )}
+          </div>
 
           {status === 'failed' && data?.error && (
             <div className="p-3 rounded-lg bg-error/10 border border-error/20 text-xs text-error flex items-center gap-2">
@@ -148,15 +210,20 @@ export default function MarketIntelligenceTab({ analysis, onRefresh }) {
             {/* Fast Analysis */}
             <button
               onClick={() => handleTrigger('fast')}
-              disabled={isTriggering || isDemo || (quota && quota.remaining === 0)}
-              className="group text-left p-5 rounded-xl bg-surface-raised/50 border border-border hover:border-accent/40 transition-all duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isTriggering || (!companyInput.trim() && !companyName) || (quota && quota.remaining === 0)}
+              className="group text-left p-5 rounded-xl bg-surface-raised/50 border border-border hover:border-accent/40 transition-all duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden"
             >
-              <div className="flex items-center gap-2 mb-3">
-                <Lightning size={18} weight="fill" className="text-accent" />
-                <span className="font-display text-sm font-semibold text-ink-primary">Fast Analysis</span>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Lightning size={18} weight="fill" className="text-accent" />
+                  <span className="font-display text-sm font-semibold text-ink-primary">Fast Analysis</span>
+                </div>
+                <span className="text-[10px] font-mono text-accent bg-accent/10 border border-accent/20 px-1.5 py-0.5 rounded">
+                  PRIMARY KEY
+                </span>
               </div>
               <p className="text-xs text-ink-muted leading-relaxed mb-3">
-                Search-grounded market research using Google Search. Finds company data, similar JDs, and skill benchmarks.
+                Live Google Search-grounded intelligence. Discovers company domain, tech stack, peer JDs, and table-stakes vs edge skills.
               </p>
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-mono text-ink-subtle">~20-30 seconds</span>
@@ -167,25 +234,30 @@ export default function MarketIntelligenceTab({ analysis, onRefresh }) {
             {/* Deep Dive */}
             <button
               onClick={() => handleTrigger('deep')}
-              disabled={isTriggering || isDemo || (quota && quota.remaining === 0)}
-              className="group text-left p-5 rounded-xl bg-surface-raised/50 border border-border hover:border-accent/40 transition-all duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isTriggering || (!companyInput.trim() && !companyName) || (quota && quota.remaining === 0)}
+              className="group text-left p-5 rounded-xl bg-surface-raised/50 border border-accent/30 hover:border-accent/60 transition-all duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden bg-gradient-to-br from-surface-raised/50 to-accent/5"
             >
-              <div className="flex items-center gap-2 mb-3">
-                <MagnifyingGlass size={18} weight="bold" className="text-accent" />
-                <span className="font-display text-sm font-semibold text-ink-primary">Deep Dive Research</span>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <MagnifyingGlass size={18} weight="bold" className="text-accent" />
+                  <span className="font-display text-sm font-semibold text-ink-primary">Deep Dive Research</span>
+                </div>
+                <span className="text-[10px] font-mono text-accent bg-accent/15 border border-accent/30 px-1.5 py-0.5 rounded font-medium">
+                  DEDICATED KEY
+                </span>
               </div>
               <p className="text-xs text-ink-muted leading-relaxed mb-3">
-                Autonomous research agent that conducts comprehensive market analysis with cited sources.
+                Multi-stage autonomous research agent via Gemini Interactions API. Conducts in-depth market investigation and produces a full cited intelligence report.
               </p>
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono text-ink-subtle">~2-5 minutes</span>
+                <span className="text-[10px] font-mono text-accent font-medium">~2-5 minutes</span>
                 <ArrowRight size={14} className="text-accent opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
             </button>
           </div>
 
           {/* Daily Quota Counter */}
-          {quota && !isDemo && (
+          {quota && (
             <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-border-subtle">
               <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded font-mono text-xs tabular-nums border ${
                 quota.remaining > 0
@@ -270,15 +342,33 @@ export default function MarketIntelligenceTab({ analysis, onRefresh }) {
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
 
-      {/* Mode indicator */}
-      <div className="flex items-center gap-2">
-        <span className="text-[10px] font-mono text-ink-subtle uppercase tracking-wider">
-          {data.mode === 'deep' ? 'Deep Dive Research' : 'Fast Search Analysis'}
-        </span>
-        <span className="text-[10px] font-mono text-ink-faint">•</span>
-        <span className="text-[10px] font-mono text-ink-subtle">
-          {mb?.jds_analyzed_count || 0} JDs analyzed
-        </span>
+      {/* Mode indicator & Deep Dive Upgrade */}
+      <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-xl bg-surface border border-border">
+        <div className="flex items-center gap-2.5">
+          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-mono font-medium border ${
+            data.mode === 'deep'
+              ? 'bg-accent/15 text-accent border-accent/30'
+              : 'bg-surface-raised text-ink-primary border-border'
+          }`}>
+            {data.mode === 'deep' ? <MagnifyingGlass size={13} weight="bold" /> : <Lightning size={13} weight="fill" />}
+            <span>{data.mode === 'deep' ? 'Deep Dive Research Mode' : 'Fast Analysis Mode'}</span>
+          </span>
+          <span className="text-[11px] font-mono text-ink-subtle">
+            {mb?.jds_analyzed_count || 0} JDs analyzed
+          </span>
+        </div>
+
+        {data.mode === 'fast' && (
+          <button
+            onClick={() => handleTrigger('deep')}
+            disabled={isTriggering}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-accent/10 border border-accent/30 hover:bg-accent/20 text-xs font-mono text-accent transition-colors cursor-pointer"
+            title="Run comprehensive autonomous deep research with dedicated Gemini key"
+          >
+            <MagnifyingGlass size={13} weight="bold" />
+            <span>Run Deep Dive Mode (~2-5 min)</span>
+          </button>
+        )}
       </div>
 
 

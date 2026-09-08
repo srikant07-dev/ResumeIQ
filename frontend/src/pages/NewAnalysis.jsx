@@ -76,6 +76,7 @@ export default function NewAnalysis() {
 
   const handleLoadSampleJob = () => {
     setJobTitle('Full Stack Software Engineer');
+    setCompanyName('Stripe');
     setJobDescription(
       'We are looking for a Full Stack Software Engineer with strong experience in Python, FastAPI, React, and PostgreSQL. ' +
       'Responsibilities include building high-performance REST APIs, responsive dashboard interfaces with Tailwind CSS, and writing clean asynchronous services. ' +

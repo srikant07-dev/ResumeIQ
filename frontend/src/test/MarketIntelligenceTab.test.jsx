@@ -103,9 +103,9 @@ describe('MarketIntelligenceTab Component', () => {
       />
     );
 
-    expect(screen.getByText('Market Intelligence')).toBeInTheDocument();
+    expect(screen.getByText(/Market Intelligence & Deep Research Engine/i)).toBeInTheDocument();
     expect(screen.getByText(/Backend Engineer/)).toBeInTheDocument();
-    expect(screen.getByText(/Stripe/)).toBeInTheDocument();
+    expect(screen.getAllByText(/Stripe/).length).toBeGreaterThanOrEqual(1);
 
     // Mode cards
     expect(screen.getByText('Fast Analysis')).toBeInTheDocument();
@@ -134,7 +134,7 @@ describe('MarketIntelligenceTab Component', () => {
     await waitFor(() => {
       expect(api.post).toHaveBeenCalledWith(
         '/analyses/test-analysis-123/market-intel/trigger',
-        { mode: 'fast' }
+        { mode: 'fast', company_name: 'Stripe' }
       );
       expect(mockRefresh).toHaveBeenCalled();
     });
@@ -157,7 +157,7 @@ describe('MarketIntelligenceTab Component', () => {
     await waitFor(() => {
       expect(api.post).toHaveBeenCalledWith(
         '/analyses/test-analysis-123/market-intel/trigger',
-        { mode: 'deep' }
+        { mode: 'deep', company_name: 'Stripe' }
       );
       expect(mockRefresh).toHaveBeenCalled();
     });
@@ -216,7 +216,7 @@ describe('MarketIntelligenceTab Component', () => {
     );
 
     // Header metrics
-    expect(screen.getByText('Fast Search Analysis')).toBeInTheDocument();
+    expect(screen.getByText('Fast Analysis Mode')).toBeInTheDocument();
     expect(screen.getByText(/12 JDs analyzed/)).toBeInTheDocument();
 
     // Section 1: Company Profile
@@ -262,7 +262,7 @@ describe('MarketIntelligenceTab Component', () => {
       />
     );
 
-    expect(screen.getByText('Deep Dive Research')).toBeInTheDocument();
+    expect(screen.getByText('Deep Dive Research Mode')).toBeInTheDocument();
     expect(screen.getByText('Full Research Report')).toBeInTheDocument();
 
     // Expand the report
@@ -276,7 +276,7 @@ describe('MarketIntelligenceTab Component', () => {
   // Demo Mode & Edge Cases
   // ============================================================================
 
-  it('renders demo mode warning banner and disables trigger buttons in demo mode', () => {
+  it('renders mode cards and allows triggering even when demo session exists in localStorage', () => {
     localStorage.setItem(
       'resumeiq_demo_session',
       JSON.stringify({ access_token: 'demo-token', user: { id: 'demo-user-123' } })
@@ -289,15 +289,15 @@ describe('MarketIntelligenceTab Component', () => {
       />
     );
 
-    expect(screen.getByText('Demo Mode Active')).toBeInTheDocument();
-    expect(screen.getByText(/Market Intelligence requires live web research and is disabled in Demo Mode/i)).toBeInTheDocument();
+    expect(screen.getByText('Fast Analysis')).toBeInTheDocument();
+    expect(screen.getByText('Deep Dive Research')).toBeInTheDocument();
 
-    // Buttons should be disabled
+    // Buttons should be enabled and interactive
     const fastBtn = screen.getByRole('button', { name: /Fast Analysis/i });
     const deepBtn = screen.getByRole('button', { name: /Deep Dive Research/i });
 
-    expect(fastBtn).toBeDisabled();
-    expect(deepBtn).toBeDisabled();
+    expect(fastBtn).not.toBeDisabled();
+    expect(deepBtn).not.toBeDisabled();
   });
 
   it('renders failed message banner with error details when status is failed', () => {

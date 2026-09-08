@@ -709,6 +709,7 @@ async def run_full_market_intelligence(
     analysis_id: str,
     user_id: str,
     mode: str = "fast",
+    company_name: str | None = None,
 ) -> None:
     """Background task entry point. Updates DB status as it progresses.
     Called via asyncio.create_task() from the API route.
@@ -724,7 +725,7 @@ async def run_full_market_intelligence(
             raise RuntimeError("Analysis not found or has no result data")
 
         # 2. Extract data needed for intelligence pipeline
-        company_name = analysis.company_name or "Unknown Company"
+        company_name = company_name or analysis.company_name or "Unknown Company"
         job_title = analysis.job_title
         job_description = analysis.job_description or ""
         candidate_skills = [

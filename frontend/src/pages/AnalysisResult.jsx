@@ -246,11 +246,7 @@ ${result.recommendations?.map((r, i) => `${i + 1}. **[${r.priority}] ${r.title}*
     { id: 'experience', label: 'Experience & Quality', icon: FileText },
     { id: 'recommendations', label: `Recommendations (${result.recommendations?.length || 0})`, icon: Lightbulb },
     { id: 'simulator', label: 'What-If Simulator', icon: Lightning },
-    ...(analysis.company_name && !isDemo ? [{
-      id: 'market-intel',
-      label: 'Market Intel',
-      icon: Globe,
-    }] : []),
+    { id: 'market-intel', label: 'Market Intel', icon: Globe },
   ];
 
   return (

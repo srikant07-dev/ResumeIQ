@@ -107,6 +107,7 @@ class MarketIntelligenceResult(BaseModel):
 
 class MarketIntelTriggerRequest(BaseModel):
     mode: Literal["fast", "deep"] = "fast"
+    company_name: Optional[str] = Field(default=None, min_length=2, max_length=100)
 
 class MarketIntelTriggerResponse(BaseModel):
     status: str = "running"                  # running | completed | failed
