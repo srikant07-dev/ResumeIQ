@@ -128,15 +128,15 @@ export default function Landing() {
             </h2>
           </div>
 
-          {/* Asymmetric stagger: numbered list with ghost numerals, not cards */}
+          {/* Asymmetric stagger: numbered list with high-clarity numerals */}
           <div className="space-y-0 divide-y divide-border">
             {/* Step 1 */}
-            <div className="relative py-8 sm:py-10 grid grid-cols-[auto_1fr] gap-6 sm:gap-10 items-start">
-              <span className="font-mono text-6xl sm:text-7xl font-semibold text-ink-primary/[0.04] select-none leading-none pt-1">
+            <div className="group relative py-8 sm:py-10 grid grid-cols-[auto_1fr] gap-6 sm:gap-10 items-start">
+              <span className="font-mono text-5xl sm:text-6xl font-semibold text-ink-muted/40 group-hover:text-accent/80 tabular-nums select-none leading-none pt-1 transition-colors duration-200">
                 01
               </span>
               <div>
-                <h3 className="font-display text-lg font-semibold text-ink-primary mb-2">
+                <h3 className="font-display text-lg font-semibold text-ink-primary group-hover:text-accent transition-colors duration-150 mb-2">
                   Upload & Extract
                 </h3>
                 <p className="text-sm text-ink-muted leading-relaxed max-w-lg">
@@ -146,12 +146,12 @@ export default function Landing() {
             </div>
 
             {/* Step 2 */}
-            <div className="relative py-8 sm:py-10 grid grid-cols-[auto_1fr] gap-6 sm:gap-10 items-start">
-              <span className="font-mono text-6xl sm:text-7xl font-semibold text-ink-primary/[0.04] select-none leading-none pt-1">
+            <div className="group relative py-8 sm:py-10 grid grid-cols-[auto_1fr] gap-6 sm:gap-10 items-start">
+              <span className="font-mono text-5xl sm:text-6xl font-semibold text-ink-muted/40 group-hover:text-accent/80 tabular-nums select-none leading-none pt-1 transition-colors duration-200">
                 02
               </span>
               <div>
-                <h3 className="font-display text-lg font-semibold text-ink-primary mb-2">
+                <h3 className="font-display text-lg font-semibold text-ink-primary group-hover:text-accent transition-colors duration-150 mb-2">
                   Hybrid Evaluation
                 </h3>
                 <p className="text-sm text-ink-muted leading-relaxed max-w-lg">
@@ -161,12 +161,12 @@ export default function Landing() {
             </div>
 
             {/* Step 3 */}
-            <div className="relative py-8 sm:py-10 grid grid-cols-[auto_1fr] gap-6 sm:gap-10 items-start">
-              <span className="font-mono text-6xl sm:text-7xl font-semibold text-ink-primary/[0.04] select-none leading-none pt-1">
+            <div className="group relative py-8 sm:py-10 grid grid-cols-[auto_1fr] gap-6 sm:gap-10 items-start">
+              <span className="font-mono text-5xl sm:text-6xl font-semibold text-ink-muted/40 group-hover:text-accent/80 tabular-nums select-none leading-none pt-1 transition-colors duration-200">
                 03
               </span>
               <div>
-                <h3 className="font-display text-lg font-semibold text-ink-primary mb-2">
+                <h3 className="font-display text-lg font-semibold text-ink-primary group-hover:text-accent transition-colors duration-150 mb-2">
                   Actionable Insights & Revision Loop
                 </h3>
                 <p className="text-sm text-ink-muted leading-relaxed max-w-lg">
