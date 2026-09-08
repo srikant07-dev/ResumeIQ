@@ -41,12 +41,30 @@ export default function MarketIntelligenceTab({ analysis, onRefresh }) {
   const [isTriggering, setIsTriggering] = useState(false);
   const [triggerError, setTriggerError] = useState(null);
   const [expandedSections, setExpandedSections] = useState({});
+  const [quota, setQuota] = useState(null);
   const pollRef = useRef(null);
 
   const status = analysis?.market_intel_status;
   const data = analysis?.market_intel_json;
   const companyName = analysis?.company_name || '';
   const jobTitle = analysis?.job_title || '';
+
+  const isDemo = typeof window !== 'undefined' && (
+    Boolean(localStorage.getItem('resumeiq_demo_session')) ||
+    Boolean(analysis?.user_id?.startsWith('demo-'))
+  );
+
+  // Fetch quota remaining for user
+  useEffect(() => {
+    if (isDemo || !analysis?.id) return;
+    let isMounted = true;
+    api.get(`/analyses/${analysis.id}/market-intel/quota`)
+      .then(res => {
+        if (isMounted) setQuota(res.data);
+      })
+      .catch(err => console.warn('Could not fetch market intel quota:', err));
+    return () => { isMounted = false; };
+  }, [analysis?.id, status, isDemo]);
 
   // Poll for completion when status is "running"
   useEffect(() => {
@@ -101,6 +119,16 @@ export default function MarketIntelligenceTab({ analysis, onRefresh }) {
             </div>
           </div>
 
+          {isDemo && (
+            <div className="p-3.5 rounded-lg bg-surface-raised border border-border text-xs text-ink-muted flex items-start gap-2.5">
+              <WarningCircle size={16} weight="fill" className="text-score-partial shrink-0 mt-0.5" />
+              <div>
+                <span className="font-medium text-ink-primary block mb-0.5">Demo Mode Active</span>
+                Market Intelligence requires live web research and is disabled in Demo Mode. Switch to a standard account to access live market intelligence.
+              </div>
+            </div>
+          )}
+
           {status === 'failed' && data?.error && (
             <div className="p-3 rounded-lg bg-error/10 border border-error/20 text-xs text-error flex items-center gap-2">
               <WarningCircle size={16} weight="fill" className="shrink-0" />
@@ -120,7 +148,7 @@ export default function MarketIntelligenceTab({ analysis, onRefresh }) {
             {/* Fast Analysis */}
             <button
               onClick={() => handleTrigger('fast')}
-              disabled={isTriggering}
+              disabled={isTriggering || isDemo || (quota && quota.remaining === 0)}
               className="group text-left p-5 rounded-xl bg-surface-raised/50 border border-border hover:border-accent/40 transition-all duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <div className="flex items-center gap-2 mb-3">
@@ -139,7 +167,7 @@ export default function MarketIntelligenceTab({ analysis, onRefresh }) {
             {/* Deep Dive */}
             <button
               onClick={() => handleTrigger('deep')}
-              disabled={isTriggering}
+              disabled={isTriggering || isDemo || (quota && quota.remaining === 0)}
               className="group text-left p-5 rounded-xl bg-surface-raised/50 border border-border hover:border-accent/40 transition-all duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <div className="flex items-center gap-2 mb-3">
@@ -155,6 +183,25 @@ export default function MarketIntelligenceTab({ analysis, onRefresh }) {
               </div>
             </button>
           </div>
+
+          {/* Daily Quota Counter */}
+          {quota && !isDemo && (
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-border-subtle">
+              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded font-mono text-xs tabular-nums border ${
+                quota.remaining > 0
+                  ? 'bg-accent/10 text-accent border-accent/20'
+                  : 'bg-error/10 text-error border-error/20'
+              }`}>
+                <Clock size={12} weight="bold" />
+                <span>Uses [{quota.remaining}/{quota.limit}] remaining analyses today</span>
+              </span>
+              {quota.remaining === 0 && (
+                <span className="text-xs font-mono text-error">
+                  Daily limit reached. Resets at midnight UTC.
+                </span>
+              )}
+            </div>
+          )}
         </div>
       </div>
     );

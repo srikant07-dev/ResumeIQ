@@ -22,6 +22,7 @@ from app.schemas.analysis import (
     ReEvaluationResponse,
     MarketIntelTriggerRequest,
     MarketIntelTriggerResponse,
+    MarketIntelQuotaResponse,
 )
 from app.schemas.common import ErrorResponse
 
@@ -155,3 +156,20 @@ async def trigger_market_intelligence(
         status="running",
         message=f"Market intelligence started in {mode_label} mode.",
     )
+
+
+@router.get("/{analysis_id}/market-intel/quota", response_model=MarketIntelQuotaResponse)
+async def get_market_intel_quota(
+    analysis_id: str,
+    user_id: str = Depends(get_current_user),
+):
+    """Returns the user's market intelligence daily usage and remaining limit."""
+    settings = get_settings()
+    daily_count = await count_user_market_intel_today(user_id)
+    limit = settings.MARKET_INTEL_DAILY_LIMIT
+    return MarketIntelQuotaResponse(
+        used=daily_count,
+        limit=limit,
+        remaining=max(0, limit - daily_count),
+    )
+

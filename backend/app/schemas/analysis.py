@@ -112,6 +112,11 @@ class MarketIntelTriggerResponse(BaseModel):
     status: str = "running"                  # running | completed | failed
     message: str = ""
 
+class MarketIntelQuotaResponse(BaseModel):
+    used: int
+    limit: int
+    remaining: int
+
 
 # ──────────────────────────────────────────────
 # Request / Response Schemas

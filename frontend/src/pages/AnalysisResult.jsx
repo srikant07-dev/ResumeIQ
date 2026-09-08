@@ -234,6 +234,11 @@ ${result.recommendations?.map((r, i) => `${i + 1}. **[${r.priority}] ${r.title}*
   const result = analysis.result_json;
   const rating = getScoreRating(analysis.overall_score || 0);
 
+  const isDemo = typeof window !== 'undefined' && (
+    Boolean(localStorage.getItem('resumeiq_demo_session')) ||
+    Boolean(analysis?.user_id?.startsWith('demo-'))
+  );
+
   const tabs = [
     { id: 'overview', label: 'Overview', icon: Target },
     { id: 'skills', label: `Skills (${result.matching_skills?.length || 0})`, icon: CheckCircle },
@@ -241,7 +246,7 @@ ${result.recommendations?.map((r, i) => `${i + 1}. **[${r.priority}] ${r.title}*
     { id: 'experience', label: 'Experience & Quality', icon: FileText },
     { id: 'recommendations', label: `Recommendations (${result.recommendations?.length || 0})`, icon: Lightbulb },
     { id: 'simulator', label: 'What-If Simulator', icon: Lightning },
-    ...(analysis.company_name ? [{
+    ...(analysis.company_name && !isDemo ? [{
       id: 'market-intel',
       label: 'Market Intel',
       icon: Globe,
